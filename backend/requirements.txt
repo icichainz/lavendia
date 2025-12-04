@@ -1,0 +1,44 @@
+# Core Django
+Django>=4.2,<5.0
+djangorestframework>=3.14.0
+
+# CORS Headers
+django-cors-headers>=4.3.0
+
+# Authentication
+djangorestframework-simplejwt>=5.3.0
+
+# Image processing
+Pillow>=10.1.0
+
+# QR Code generation
+qrcode>=7.4.2
+
+# Environment variables
+python-decouple>=3.8
+
+# Filtering
+django-filter>=23.3
+
+# API Documentation
+drf-spectacular>=0.26.5
+
+# Production server
+gunicorn>=21.2.0
+
+# Static files
+whitenoise>=6.6.0
+
+# Database (PostgreSQL - optional, can use SQLite for dev)
+# psycopg2-binary>=2.9.9
+
+# Cloud storage (optional for production)
+# django-storages>=1.14
+# boto3>=1.29.0
+
+# Push notifications (optional)
+# fcm-django>=2.0.0
+
+# Async tasks (optional)
+# celery>=5.3.4
+# redis>=5.0.1

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "Bash(venv/Scripts/django-admin startproject:*)",
+      "Bash(venv/Scripts/python:*)",
+      "Bash(../venv/Scripts/python:*)",
+      "Bash(dir /s \"c:\\Users\\SSA_CLIMATE\\AndroidStudioProjects\\lavendia\\lib\")",
+      "Bash(flutter pub get:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
