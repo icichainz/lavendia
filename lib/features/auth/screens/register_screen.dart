@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../shared/widgets/custom_text_field.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -57,18 +58,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully! Please login.'),
+        SnackBar(
+          content: Text(l10n.translate('account_created')),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
       );
       Navigator.of(context).pop(); // Go back to login
     } else {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Registration failed'),
+          content: Text(authProvider.errorMessage ?? l10n.translate('registration_failed')),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -78,9 +81,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Account'),
+        title: Text(l10n.createAccount),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -102,8 +106,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       child: CustomTextField(
                         controller: _firstNameController,
-                        label: 'First Name',
-                        hint: 'John',
+                        label: l10n.firstName,
+                        hint: l10n.translate('first_name_hint'),
                         prefixIcon: const Icon(Icons.person_outline),
                         textInputAction: TextInputAction.next,
                       ),
@@ -112,8 +116,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Expanded(
                       child: CustomTextField(
                         controller: _lastNameController,
-                        label: 'Last Name',
-                        hint: 'Doe',
+                        label: l10n.lastName,
+                        hint: l10n.translate('last_name_hint'),
                         textInputAction: TextInputAction.next,
                       ),
                     ),
@@ -124,16 +128,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Username
                 CustomTextField(
                   controller: _usernameController,
-                  label: 'Username',
-                  hint: 'Choose a username',
+                  label: l10n.username,
+                  hint: l10n.translate('choose_username'),
                   prefixIcon: const Icon(Icons.alternate_email),
                   textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Username is required';
+                      return l10n.translate('username_required');
                     }
                     if (value.length < 3) {
-                      return 'Username must be at least 3 characters';
+                      return l10n.translate('username_min_length');
                     }
                     return null;
                   },
@@ -143,17 +147,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Email
                 CustomTextField(
                   controller: _emailController,
-                  label: 'Email',
-                  hint: 'your@email.com',
+                  label: l10n.email,
+                  hint: l10n.translate('email_hint'),
                   prefixIcon: const Icon(Icons.email_outlined),
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Email is required';
+                      return l10n.translate('email_required');
                     }
                     if (!value.contains('@') || !value.contains('.')) {
-                      return 'Enter a valid email address';
+                      return l10n.translate('email_invalid');
                     }
                     return null;
                   },
@@ -163,14 +167,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Phone
                 CustomTextField(
                   controller: _phoneController,
-                  label: 'Phone',
-                  hint: '+1 234 567 8900',
+                  label: l10n.phone,
+                  hint: l10n.translate('phone_hint'),
                   prefixIcon: const Icon(Icons.phone_outlined),
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Phone number is required';
+                      return l10n.translate('phone_required');
                     }
                     return null;
                   },
@@ -180,15 +184,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Password
                 PasswordTextField(
                   controller: _passwordController,
-                  label: 'Password',
-                  hint: 'Create a password',
+                  label: l10n.password,
+                  hint: l10n.translate('create_password'),
                   textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Password is required';
+                      return l10n.translate('password_required');
                     }
                     if (value.length < AppConstants.minPasswordLength) {
-                      return 'Password must be at least ${AppConstants.minPasswordLength} characters';
+                      return l10n.translate('password_too_short');
                     }
                     return null;
                   },
@@ -198,16 +202,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Confirm Password
                 PasswordTextField(
                   controller: _confirmPasswordController,
-                  label: 'Confirm Password',
-                  hint: 'Repeat your password',
+                  label: l10n.confirmPassword,
+                  hint: l10n.translate('repeat_password'),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _register(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please confirm your password';
+                      return l10n.translate('confirm_password_required');
                     }
                     if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                      return l10n.translate('password_mismatch');
                     }
                     return null;
                   },
@@ -218,7 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     return CustomButton(
-                      text: 'Create Account',
+                      text: l10n.createAccount,
                       isLoading: authProvider.isLoading,
                       onPressed: _register,
                       icon: Icons.person_add,
@@ -232,11 +236,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account?',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      l10n.alreadyHaveAccount,
+                      style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
                     ),
                     CustomTextButton(
-                      text: 'Sign In',
+                      text: l10n.signIn,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -256,13 +260,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.person_add_outlined,
             size: 40,
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(height: 16),
@@ -270,14 +274,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'Join ${AppConstants.appName}',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Create an account to get started',
+          AppLocalizations.of(context)!.translate('create_account_subtitle'),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).textTheme.bodySmall?.color,
               ),
         ),
       ],

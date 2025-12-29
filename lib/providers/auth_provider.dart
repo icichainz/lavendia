@@ -213,6 +213,34 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Upload profile picture
+  Future<bool> uploadProfilePicture(String imagePath) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _authService.uploadProfilePicture(imagePath);
+
+      if (result['success']) {
+        _user = result['user'];
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      _errorMessage = result['message'] ?? 'Failed to upload profile picture';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Clear error message
   void clearError() {
     _errorMessage = null;

@@ -54,6 +54,21 @@ class AppColors {
   static const Color border = Color(0xFFE5E7EB);
   static const Color borderFocus = Color(0xFF6366F1);
 
+  // ===== Dark Mode Colors =====
+
+  // Dark Background Colors
+  static const Color darkBackground = Color(0xFF121212);
+  static const Color darkSurface = Color(0xFF1E1E1E);
+  static const Color darkSurfaceVariant = Color(0xFF2D2D2D);
+
+  // Dark Text Colors
+  static const Color darkTextPrimary = Color(0xFFF9FAFB);
+  static const Color darkTextSecondary = Color(0xFF9CA3AF);
+  static const Color darkTextTertiary = Color(0xFF6B7280);
+
+  // Dark Border Colors
+  static const Color darkBorder = Color(0xFF374151);
+
   // Get status color by status name
   static Color getStatusColor(String status) {
     switch (status.toLowerCase()) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/receipt_provider.dart';
 
 class QRCodeScreen extends StatefulWidget {
@@ -98,13 +99,14 @@ class _QRCodeScreenState extends State<QRCodeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final qrData = 'LAVENDIA:${widget.receiptId}:${widget.receiptNumber}';
 
     return Scaffold(
       appBar: _isCompleted
           ? null
           : AppBar(
-              title: const Text('Pickup QR Code'),
+              title: Text(l10n.pickupQrCode),
               centerTitle: true,
             ),
       body: _isCompleted ? _buildSuccessScreen() : _buildQRScreen(qrData),
@@ -112,6 +114,7 @@ class _QRCodeScreenState extends State<QRCodeScreen>
   }
 
   Widget _buildSuccessScreen() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -154,9 +157,9 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  'Pickup Confirmed!',
-                  style: TextStyle(
+                Text(
+                  l10n.pickupConfirmed,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AppColors.white,
@@ -188,9 +191,9 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                         color: AppColors.white,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Thank you for choosing Lavendia!',
-                        style: TextStyle(
+                      Text(
+                        l10n.thankYou,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: AppColors.white,
@@ -199,7 +202,7 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'We hope to see you again soon',
+                        l10n.seeYouSoon,
                         style: TextStyle(
                           fontSize: 14,
                           color: AppColors.white.withValues(alpha: 0.8),
@@ -211,7 +214,7 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                 ),
                 const SizedBox(height: 48),
                 Text(
-                  'Redirecting to home...',
+                  l10n.translate('redirecting'),
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.white.withValues(alpha: 0.7),
@@ -284,7 +287,7 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.info_outline,
                           color: AppColors.primary,
                           size: 24,
@@ -292,8 +295,8 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Show this QR code to the staff when picking up your laundry',
-                            style: TextStyle(
+                            AppLocalizations.of(context)!.qrInstructions,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: AppColors.primary,
                             ),
@@ -313,7 +316,7 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: AppColors.grey100,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(30),
               ),
               child: Row(
@@ -325,16 +328,16 @@ class _QRCodeScreenState extends State<QRCodeScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
+                        Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Waiting for staff to scan...',
+                    AppLocalizations.of(context)!.waitingForScan,
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
@@ -357,15 +360,15 @@ class _QRCodeScreenState extends State<QRCodeScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: AppColors.statusReady,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Ready for Pickup',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.readyForPickup,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: AppColors.statusReady,
@@ -377,10 +380,10 @@ class _QRCodeScreenState extends State<QRCodeScreen>
             const SizedBox(height: 24),
             // Brightness Tip
             Text(
-              'Tip: Increase your screen brightness for easier scanning',
+              AppLocalizations.of(context)!.brightnessTip,
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../models/user_model.dart';
@@ -127,10 +128,11 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
   }
 
   Future<void> _submitForm() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a customer'),
+        SnackBar(
+          content: Text(l10n.translate('select_customer')),
           backgroundColor: AppColors.error,
         ),
       );
@@ -163,7 +165,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
       if (receipt != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Receipt ${receipt.receiptNumber} created!'),
+            content: Text('${l10n.translate('receipt_number')} ${receipt.receiptNumber} ${l10n.translate('receipt_created')}'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -171,7 +173,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(receiptProvider.errorMessage ?? 'Failed to create receipt'),
+            content: Text(receiptProvider.errorMessage ?? l10n.translate('receipt_create_failed')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -194,9 +196,10 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Receipt'),
+        title: Text(l10n.createReceipt),
       ),
       body: _isSubmitting
           ? const Center(child: LoadingIndicator())
@@ -218,13 +221,13 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                     const SizedBox(height: 12),
                     CustomTextField(
                       controller: _itemsDescriptionController,
-                      label: 'Items Description',
-                      hint: 'e.g., 3 shirts, 2 pants, 5 socks',
+                      label: l10n.translate('items_description'),
+                      hint: l10n.translate('items_description_hint'),
                       prefixIcon: const Icon(Icons.inventory_2),
                       maxLines: 2,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please describe the items';
+                          return l10n.translate('field_required');
                         }
                         return null;
                       },
@@ -235,16 +238,16 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                         Expanded(
                           child: CustomTextField(
                             controller: _itemsCountController,
-                            label: 'Item Count',
+                            label: l10n.translate('number_of_items'),
                             hint: '0',
                             prefixIcon: const Icon(Icons.numbers),
                             keyboardType: TextInputType.number,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Required';
+                                return l10n.translate('field_required');
                               }
                               if (int.tryParse(value) == null) {
-                                return 'Invalid number';
+                                return l10n.translate('field_required');
                               }
                               return null;
                             },
@@ -254,16 +257,16 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                         Expanded(
                           child: CustomTextField(
                             controller: _priceController,
-                            label: 'Price (\$)',
+                            label: '${l10n.price} (\$)',
                             hint: '0.00',
                             prefixIcon: const Icon(Icons.attach_money),
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Required';
+                                return l10n.translate('field_required');
                               }
                               if (double.tryParse(value) == null) {
-                                return 'Invalid price';
+                                return l10n.translate('field_required');
                               }
                               return null;
                             },
@@ -281,37 +284,35 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppColors.grey100,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.grey200),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today, color: AppColors.primary),
+                            Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Pickup Date & Time',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                    ),
+                                  Text(
+                                    l10n.translate('expected_pickup_date'),
+                                    style: Theme.of(context).textTheme.bodySmall,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     _formatDateTime(_expectedPickupDate),
-                                    style: const TextStyle(
-                                      fontSize: 16,
+                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                            Icon(Icons.chevron_right, color: Theme.of(context).textTheme.bodySmall?.color),
                           ],
                         ),
                       ),
@@ -323,8 +324,8 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                     const SizedBox(height: 12),
                     CustomTextField(
                       controller: _instructionsController,
-                      label: 'Instructions',
-                      hint: 'Any special care instructions...',
+                      label: l10n.translate('special_instructions_optional'),
+                      hint: l10n.translate('special_instructions_optional'),
                       prefixIcon: const Icon(Icons.notes),
                       maxLines: 3,
                     ),
@@ -332,7 +333,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
 
                     // Submit Button
                     CustomButton(
-                      text: 'Create Receipt',
+                      text: l10n.createReceipt,
                       onPressed: _submitForm,
                       icon: Icons.receipt_long,
                     ),
@@ -355,8 +356,8 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
       children: [
         CustomTextField(
           controller: _customerSearchController,
-          label: 'Search Customer',
-          hint: 'Search by phone, name, or email',
+          label: AppLocalizations.of(context)!.translate('search_customer'),
+          hint: AppLocalizations.of(context)!.translate('search_by_name_phone'),
           prefixIcon: const Icon(Icons.search),
           onChanged: _onSearchChanged,
         ),
@@ -377,8 +378,10 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'No customers found',
-              style: TextStyle(color: AppColors.textSecondary),
+              AppLocalizations.of(context)!.translate('no_results'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
             ),
           ),
       ],
@@ -422,9 +425,8 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _selectedCustomer!.phone,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -433,7 +435,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: _clearSelectedCustomer,
-            color: AppColors.textSecondary,
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
         ],
       ),
@@ -444,11 +446,11 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
     return Container(
       margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -463,13 +465,13 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
           final customer = _searchResults[index];
           return ListTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               child: Text(
                 customer.fullName.isNotEmpty
                     ? customer.fullName[0].toUpperCase()
                     : '?',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -478,10 +480,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
             subtitle: Text(customer.phone),
             trailing: Text(
               customer.email,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             onTap: () => _selectCustomer(customer),
           );
@@ -493,10 +492,8 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 16,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
       ),
     );
   }

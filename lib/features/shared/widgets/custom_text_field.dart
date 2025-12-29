@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -49,7 +48,9 @@ class CustomTextField extends StatelessWidget {
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: enabled ? AppColors.white : AppColors.grey100,
+        fillColor: enabled
+            ? Theme.of(context).inputDecorationTheme.fillColor
+            : Theme.of(context).disabledColor.withValues(alpha: 0.1),
       ),
       validator: validator,
       onChanged: onChanged,

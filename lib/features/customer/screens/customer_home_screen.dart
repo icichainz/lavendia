@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -15,11 +17,48 @@ class CustomerHomeScreen extends StatefulWidget {
   State<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
 }
 
-class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+class _CustomerHomeScreenState extends State<CustomerHomeScreen>
+    with WidgetsBindingObserver {
+  Timer? _pollingTimer;
+  static const _pollingInterval = Duration(seconds: 30);
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadReceipts();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPolling();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Stop polling when app is in background, resume when foreground
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else if (state == AppLifecycleState.paused) {
+      _stopPolling();
+    }
+  }
+
+  void _startPolling() {
+    _stopPolling(); // Cancel any existing timer
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+      if (mounted) {
+        _loadReceipts();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   Future<void> _loadReceipts() async {
@@ -37,15 +76,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: Text(l10n.home),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
             onPressed: _openProfile,
-            tooltip: 'Profile',
+            tooltip: l10n.profile,
           ),
         ],
       ),
@@ -75,12 +115,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildWelcomeCard(String name) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryDark],
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -90,26 +134,26 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome back,',
+            l10n.welcomeBack,
             style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.8),
+              color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             name,
-            style: const TextStyle(
-              color: AppColors.white,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            'Track your laundry orders easily',
+            l10n.trackLaundry,
             style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.9),
+              color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.9),
               fontSize: 14,
             ),
           ),
@@ -119,6 +163,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildStatsSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<ReceiptProvider>(
       builder: (context, receiptProvider, child) {
         final activeCount = receiptProvider.activeReceipts.length;
@@ -128,7 +173,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           children: [
             Expanded(
               child: _buildStatCard(
-                'Active',
+                l10n.active,
                 activeCount.toString(),
                 Icons.pending_actions,
                 AppColors.statusPending,
@@ -137,7 +182,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: _buildStatCard(
-                'Completed',
+                l10n.completed,
                 completedCount.toString(),
                 Icons.check_circle_outline,
                 AppColors.statusCompleted,
@@ -153,11 +198,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -177,18 +222,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -197,18 +242,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildRecentReceiptsSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Recent Orders',
-              style: TextStyle(
-                fontSize: 18,
+            Text(
+              l10n.recentOrders,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
             ),
             TextButton(
@@ -219,7 +263,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   ),
                 );
               },
-              child: const Text('View All'),
+              child: Text(l10n.viewAll),
             ),
           ],
         ),
@@ -294,9 +338,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${receipt.itemsCount} items',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      AppLocalizations.of(context)!.itemsCount(receipt.itemsCount),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                         fontSize: 14,
                       ),
                     ),
@@ -326,6 +370,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -333,23 +378,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           Icon(
             Icons.receipt_long_outlined,
             size: 64,
-            color: AppColors.grey300,
+            color: Theme.of(context).disabledColor,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No orders yet',
+          Text(
+            l10n.noOrders,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Your laundry orders will appear here',
+          Text(
+            l10n.translate('orders_appear_here'),
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textTertiary,
+              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
             ),
           ),
         ],

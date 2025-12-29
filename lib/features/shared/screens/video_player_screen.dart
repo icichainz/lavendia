@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../models/video_model.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
@@ -143,15 +144,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Widget _buildLoadingView() {
-    return const Center(
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: Colors.white),
-          SizedBox(height: 16),
+          const CircularProgressIndicator(color: Colors.white),
+          const SizedBox(height: 16),
           Text(
-            'Loading video...',
-            style: TextStyle(color: Colors.white),
+            '${l10n.loading}...',
+            style: const TextStyle(color: Colors.white),
           ),
         ],
       ),
@@ -159,6 +161,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Widget _buildErrorView() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -171,9 +174,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               color: AppColors.error,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Unable to play video',
-              style: TextStyle(
+            Text(
+              l10n.error,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -195,7 +198,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 _initializeVideo();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
           ],
         ),

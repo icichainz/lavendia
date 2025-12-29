@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../shared/widgets/custom_text_field.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -75,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -116,13 +118,13 @@ class _LoginScreenState extends State<LoginScreen> {
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.local_laundry_service,
             size: 50,
-            color: AppColors.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(height: 24),
@@ -130,14 +132,13 @@ class _LoginScreenState extends State<LoginScreen> {
           AppConstants.appName,
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
               ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Sign in to continue',
+          AppLocalizations.of(context)!.translate('sign_in_to_continue'),
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).textTheme.bodySmall?.color,
               ),
         ),
       ],
@@ -149,14 +150,14 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         CustomTextField(
           controller: _usernameController,
-          label: 'Username',
-          hint: 'Enter your username',
+          label: AppLocalizations.of(context)!.username,
+          hint: AppLocalizations.of(context)!.translate('enter_username'),
           prefixIcon: const Icon(Icons.person_outline),
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.next,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please enter your username';
+              return AppLocalizations.of(context)!.translate('username_required');
             }
             return null;
           },
@@ -164,16 +165,16 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 16),
         PasswordTextField(
           controller: _passwordController,
-          label: 'Password',
-          hint: 'Enter your password',
+          label: AppLocalizations.of(context)!.password,
+          hint: AppLocalizations.of(context)!.translate('enter_password'),
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _login(),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please enter your password';
+              return AppLocalizations.of(context)!.translate('password_required');
             }
             if (value.length < AppConstants.minPasswordLength) {
-              return 'Password must be at least ${AppConstants.minPasswordLength} characters';
+              return AppLocalizations.of(context)!.translate('password_too_short');
             }
             return null;
           },
@@ -183,10 +184,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginButton() {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return CustomButton(
-          text: 'Sign In',
+          text: l10n.signIn,
           isLoading: authProvider.isLoading,
           onPressed: _login,
           icon: Icons.login,
@@ -196,15 +198,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildRegisterLink() {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          "Don't have an account?",
-          style: TextStyle(color: AppColors.textSecondary),
+          l10n.dontHaveAccount,
+          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
         ),
         CustomTextButton(
-          text: 'Sign Up',
+          text: l10n.signUp,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const RegisterScreen()),

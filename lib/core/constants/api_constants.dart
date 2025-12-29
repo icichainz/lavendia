@@ -14,8 +14,14 @@ class ApiConstants {
   static const String userMe = '/users/me/';
   static const String updateProfile = '/users/update_profile/';
   static const String changePassword = '/users/change_password/';
+  static const String uploadProfilePicture = '/users/upload_profile_picture/';
   static const String customers = '/users/customers/';
   static const String staff = '/users/staff/';
+
+  // Password Reset Endpoints
+  static const String requestPasswordReset = '/users/request_password_reset/';
+  static const String verifyResetToken = '/users/verify_reset_token/';
+  static const String resetPassword = '/users/reset_password/';
 
   // Laundromat Endpoints
   static const String laundromats = '/laundromats/';

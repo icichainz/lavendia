@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../../models/receipt_model.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -18,18 +19,25 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
   late TabController _tabController;
   String _selectedStatus = 'all';
 
-  final List<Map<String, dynamic>> _statusTabs = [
-    {'label': 'All', 'value': 'all'},
-    {'label': 'Pending', 'value': 'pending'},
-    {'label': 'Washing', 'value': 'washing'},
-    {'label': 'Drying', 'value': 'drying'},
-    {'label': 'Ready', 'value': 'ready'},
-  ];
+  // Define status values without translation (translations will be applied in build)
+  final List<String> _statusValues = ['all', 'pending', 'washing', 'drying', 'ready', 'completed'];
+
+  List<Map<String, dynamic>> _getStatusTabs(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      {'label': l10n.all, 'value': 'all'},
+      {'label': l10n.translate('pending'), 'value': 'pending'},
+      {'label': l10n.translate('washing'), 'value': 'washing'},
+      {'label': l10n.translate('drying'), 'value': 'drying'},
+      {'label': l10n.translate('ready'), 'value': 'ready'},
+      {'label': l10n.completed, 'value': 'completed'},
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _statusTabs.length, vsync: this);
+    _tabController = TabController(length: _statusValues.length, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadReceipts();
   }
@@ -44,7 +52,7 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
     setState(() {
-      _selectedStatus = _statusTabs[_tabController.index]['value'];
+      _selectedStatus = _statusValues[_tabController.index];
     });
     _loadReceipts();
   }
@@ -60,13 +68,15 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final statusTabs = _getStatusTabs(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Orders'),
+        title: Text(l10n.manageOrders),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          tabs: _statusTabs.map((tab) => Tab(text: tab['label'])).toList(),
+          tabs: statusTabs.map((tab) => Tab(text: tab['label'])).toList(),
         ),
       ),
       body: Consumer<ReceiptProvider>(
@@ -85,14 +95,14 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
                   Icon(
                     Icons.inbox_outlined,
                     size: 64,
-                    color: AppColors.grey300,
+                    color: Theme.of(context).disabledColor,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No orders found',
+                    l10n.translate('no_orders_found'),
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
@@ -152,13 +162,13 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
+                  Icon(Icons.person_outline, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
                   Text(
-                    receipt.customerName ?? 'Unknown Customer',
+                    receipt.customerName ?? AppLocalizations.of(context)!.unknownCustomer,
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
@@ -166,14 +176,14 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.textSecondary),
+                  Icon(Icons.inventory_2_outlined, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '${receipt.itemsCount} items - ${receipt.itemsDescription}',
+                      '${AppLocalizations.of(context)!.itemsCount(receipt.itemsCount)} - ${receipt.itemsDescription}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -187,23 +197,23 @@ class _ReceiptManagementScreenState extends State<ReceiptManagementScreen>
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.schedule, size: 16, color: AppColors.textSecondary),
+                      Icon(Icons.schedule, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
                       const SizedBox(width: 4),
                       Text(
                         _formatDate(receipt.expectedPickupDate),
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ),
                     ],
                   ),
                   Text(
                     '\$${receipt.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],

@@ -240,6 +240,28 @@ class ApiService {
     }
   }
 
+  // POST request with progress callback for multipart uploads
+  Future<Response> postWithProgress(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    ProgressCallback? onSendProgress,
+  }) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        onSendProgress: onSendProgress,
+      );
+      return response;
+    } on DioException {
+      rethrow;
+    }
+  }
+
   // Handle errors and return user-friendly messages
   String getErrorMessage(DioException error) {
     switch (error.type) {

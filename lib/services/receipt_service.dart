@@ -11,12 +11,14 @@ class ReceiptService {
     String? status,
     int? laundromatId,
     int? customerId,
+    String? search,
   }) async {
     try {
       final queryParams = <String, dynamic>{};
       if (status != null) queryParams['status'] = status;
       if (laundromatId != null) queryParams['laundromat'] = laundromatId;
       if (customerId != null) queryParams['customer'] = customerId;
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
 
       final response = await _api.get(
         ApiConstants.receipts,
@@ -48,9 +50,15 @@ class ReceiptService {
   }
 
   // Get my receipts (current user)
-  Future<Map<String, dynamic>> getMyReceipts() async {
+  Future<Map<String, dynamic>> getMyReceipts({String? search}) async {
     try {
-      final response = await _api.get(ApiConstants.myReceipts);
+      final queryParams = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+
+      final response = await _api.get(
+        ApiConstants.myReceipts,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
 
       if (response.statusCode == 200) {
         final List receiptsData = response.data is List

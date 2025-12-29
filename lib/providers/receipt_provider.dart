@@ -30,6 +30,7 @@ class ReceiptProvider with ChangeNotifier {
   Future<void> fetchReceipts({
     String? status,
     int? laundromatId,
+    String? search,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -39,6 +40,7 @@ class ReceiptProvider with ChangeNotifier {
       final result = await _receiptService.getReceipts(
         status: status,
         laundromatId: laundromatId,
+        search: search,
       );
 
       if (result['success']) {
@@ -55,13 +57,13 @@ class ReceiptProvider with ChangeNotifier {
   }
 
   // Fetch my receipts (for customers)
-  Future<void> fetchMyReceipts() async {
+  Future<void> fetchMyReceipts({String? search}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _receiptService.getMyReceipts();
+      final result = await _receiptService.getMyReceipts(search: search);
 
       if (result['success']) {
         _receipts = result['receipts'];

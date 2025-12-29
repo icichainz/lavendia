@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/language_provider.dart';
+import '../../../providers/theme_provider.dart';
 import '../../auth/screens/login_screen.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -20,8 +24,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  final _imagePicker = ImagePicker();
 
   bool _isEditing = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -155,6 +161,154 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showLanguageDialog(BuildContext context, LanguageProvider languageProvider) {
+    final l10n = AppLocalizations.of(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n?.selectLanguage ?? 'Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: LanguageProvider.supportedLocales.map((locale) {
+            final languageName = LanguageProvider.languageNames[locale.languageCode] ?? locale.languageCode;
+            final isSelected = languageProvider.locale == locale;
+
+            return ListTile(
+              leading: Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+              ),
+              title: Text(
+                languageName,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                ),
+              ),
+              onTap: () {
+                languageProvider.setLocale(locale);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _showThemeDialog(BuildContext context, ThemeProvider themeProvider) {
+    final l10n = AppLocalizations.of(context);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n?.translate('select_theme') ?? 'Select Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemeMode.values.map((mode) {
+            final themeName = ThemeProvider.themeNames[mode] ?? mode.name;
+            final themeIcon = ThemeProvider.themeIcons[mode] ?? Icons.brightness_auto;
+            final isSelected = themeProvider.themeMode == mode;
+
+            return ListTile(
+              leading: Icon(
+                themeIcon,
+                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+              ),
+              title: Text(
+                themeName,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                ),
+              ),
+              trailing: isSelected
+                  ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                  : null,
+              onTap: () {
+                themeProvider.setThemeMode(mode);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Image Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      setState(() => _isUploadingImage = true);
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final success = await authProvider.uploadProfilePicture(image.path);
+
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Profile picture updated successfully!'
+                  : authProvider.errorMessage ?? 'Failed to upload image',
+            ),
+            backgroundColor: success ? AppColors.success : AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -218,11 +372,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppColors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
@@ -230,19 +384,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                        child: Text(
-                          user?.fullName.isNotEmpty == true
-                              ? user!.fullName[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            backgroundImage: user?.profilePictureUrl != null
+                                ? NetworkImage(user!.profilePictureUrl!)
+                                : null,
+                            child: user?.profilePictureUrl == null
+                                ? Text(
+                                    user?.fullName.isNotEmpty == true
+                                        ? user!.fullName[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  )
+                                : null,
                           ),
-                        ),
+                          if (_isUploadingImage)
+                            Positioned.fill(
+                              child: CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.black54,
+                                child: const CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _isUploadingImage ? null : _showImageSourceDialog,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(context).cardColor,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -259,15 +455,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           user?.role.toUpperCase() ?? 'USER',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ),
@@ -280,11 +476,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
@@ -387,25 +583,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Actions
+                // Settings
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        AppLocalizations.of(context)?.settings ?? 'Settings',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Consumer<LanguageProvider>(
+                        builder: (context, languageProvider, child) {
+                          final l10n = AppLocalizations.of(context);
+                          return ListTile(
+                            leading: const Icon(Icons.language),
+                            title: Text(l10n?.language ?? 'Language'),
+                            subtitle: Text(languageProvider.currentLanguageName),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _showLanguageDialog(context, languageProvider),
+                          );
+                        },
+                      ),
+                      const Divider(),
+                      Consumer<ThemeProvider>(
+                        builder: (context, themeProvider, child) {
+                          final l10n = AppLocalizations.of(context);
+                          return ListTile(
+                            leading: Icon(ThemeProvider.themeIcons[themeProvider.themeMode]),
+                            title: Text(l10n?.translate('theme') ?? 'Theme'),
+                            subtitle: Text(themeProvider.currentThemeName),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _showThemeDialog(context, themeProvider),
+                          );
+                        },
+                      ),
+                      const Divider(),
                       ListTile(
                         leading: const Icon(Icons.lock_outline),
-                        title: const Text('Change Password'),
+                        title: Text(AppLocalizations.of(context)?.changePassword ?? 'Change Password'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: _showChangePasswordDialog,
                       ),
@@ -413,7 +644,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ListTile(
                         leading: Icon(Icons.logout, color: AppColors.error),
                         title: Text(
-                          'Logout',
+                          AppLocalizations.of(context)?.logout ?? 'Logout',
                           style: TextStyle(color: AppColors.error),
                         ),
                         onTap: _logout,
@@ -426,9 +657,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // App Info
                 Text(
                   'Lavendia v1.0.0',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                   ),
                 ),
               ],

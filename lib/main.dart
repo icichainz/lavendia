@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/localization/app_localizations.dart';
 import 'providers/auth_provider.dart';
 import 'providers/receipt_provider.dart';
+import 'providers/language_provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/staff/screens/staff_home_screen.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 
 void main() async {
   // Ensure Flutter is initialized
@@ -30,12 +35,28 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ReceiptProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const SplashScreen(),
+      child: Consumer2<LanguageProvider, ThemeProvider>(
+        builder: (context, languageProvider, themeProvider, child) {
+          return MaterialApp(
+            title: AppConstants.appName,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            locale: languageProvider.locale,
+            supportedLocales: LanguageProvider.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }
@@ -58,9 +79,25 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkAuth() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final storageService = StorageService();
 
     // Wait a bit for splash effect
     await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    // Check if user has seen onboarding
+    final hasSeenOnboarding = storageService.hasSeenOnboarding();
+
+    if (!hasSeenOnboarding) {
+      // First time user - show onboarding
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => const OnboardingScreen(),
+        ),
+      );
+      return;
+    }
 
     // Check authentication
     await authProvider.initialize();

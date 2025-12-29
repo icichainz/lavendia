@@ -227,4 +227,135 @@ class AuthService {
   String? getUserRole() {
     return _storage.getUserRole();
   }
+
+  // Request password reset - sends OTP
+  Future<Map<String, dynamic>> requestPasswordReset(String emailOrPhone) async {
+    try {
+      final response = await _api.post(
+        ApiConstants.requestPasswordReset,
+        data: {'email_or_phone': emailOrPhone},
+        options: Options(headers: ApiConstants.headers),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Reset code sent',
+          'debug_token': response.data['debug_token'], // For development
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Failed to send reset code',
+      };
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _api.getErrorMessage(e),
+      };
+    }
+  }
+
+  // Verify reset token
+  Future<Map<String, dynamic>> verifyResetToken(String emailOrPhone, String token) async {
+    try {
+      final response = await _api.post(
+        ApiConstants.verifyResetToken,
+        data: {
+          'email_or_phone': emailOrPhone,
+          'token': token,
+        },
+        options: Options(headers: ApiConstants.headers),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'valid': response.data['valid'] ?? true,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Invalid reset code',
+      };
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _api.getErrorMessage(e),
+      };
+    }
+  }
+
+  // Reset password with token
+  Future<Map<String, dynamic>> resetPassword({
+    required String emailOrPhone,
+    required String token,
+    required String newPassword,
+    required String newPasswordConfirm,
+  }) async {
+    try {
+      final response = await _api.post(
+        ApiConstants.resetPassword,
+        data: {
+          'email_or_phone': emailOrPhone,
+          'token': token,
+          'new_password': newPassword,
+          'new_password_confirm': newPasswordConfirm,
+        },
+        options: Options(headers: ApiConstants.headers),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Password reset successfully',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Failed to reset password',
+      };
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _api.getErrorMessage(e),
+      };
+    }
+  }
+
+  // Upload profile picture
+  Future<Map<String, dynamic>> uploadProfilePicture(String imagePath) async {
+    try {
+      final formData = FormData.fromMap({
+        'profile_picture': await MultipartFile.fromFile(imagePath),
+      });
+
+      final response = await _api.post(
+        ApiConstants.uploadProfilePicture,
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        final user = UserModel.fromJson(response.data['user']);
+        return {
+          'success': true,
+          'user': user,
+          'message': response.data['message'] ?? 'Profile picture uploaded successfully',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Failed to upload profile picture',
+      };
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _api.getErrorMessage(e),
+      };
+    }
+  }
 }

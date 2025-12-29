@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -30,12 +31,13 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Staff Dashboard'),
+        title: const Text('Staff Dashboard'),  // Keep hardcoded as no translation key exists
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -60,12 +62,10 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               const SizedBox(height: 24),
 
               // Quick Actions
-              const Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 18,
+              Text(
+                'Quick Actions',  // No translation key available
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -73,12 +73,10 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               const SizedBox(height: 24),
 
               // Active Receipts Summary
-              const Text(
-                'Active Orders',
-                style: TextStyle(
-                  fontSize: 18,
+              Text(
+                l10n.activeOrders,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -91,6 +89,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   }
 
   Widget _buildWelcomeCard(String name) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -121,7 +120,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome back,',
+                  '${l10n.welcomeBack},',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.white.withValues(alpha: 0.8),
@@ -150,7 +149,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         Expanded(
           child: _buildActionCard(
             icon: Icons.add_circle_outline,
-            label: 'New Receipt',
+            label: AppLocalizations.of(context)!.createReceipt,
             color: AppColors.primary,
             onTap: () {
               Navigator.of(context).push(
@@ -163,7 +162,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         Expanded(
           child: _buildActionCard(
             icon: Icons.qr_code_scanner,
-            label: 'Scan QR',
+            label: AppLocalizations.of(context)!.scanQrCode,
             color: AppColors.statusReady,
             onTap: () {
               Navigator.of(context).push(
@@ -176,7 +175,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         Expanded(
           child: _buildActionCard(
             icon: Icons.list_alt,
-            label: 'All Orders',
+            label: '${AppLocalizations.of(context)!.all} ${AppLocalizations.of(context)!.orders}',
             color: AppColors.secondary,
             onTap: () {
               Navigator.of(context).push(
@@ -241,11 +240,11 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -253,13 +252,13 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           ),
           child: Column(
             children: [
-              _buildStatusRow('Pending', pendingCount, AppColors.statusPending),
+              _buildStatusRow(AppLocalizations.of(context)!.translate('pending'), pendingCount, AppColors.statusPending),
               const Divider(height: 24),
-              _buildStatusRow('Washing', washingCount, AppColors.statusWashing),
+              _buildStatusRow(AppLocalizations.of(context)!.translate('washing'), washingCount, AppColors.statusWashing),
               const Divider(height: 24),
-              _buildStatusRow('Drying', dryingCount, AppColors.statusDrying),
+              _buildStatusRow(AppLocalizations.of(context)!.translate('drying'), dryingCount, AppColors.statusDrying),
               const Divider(height: 24),
-              _buildStatusRow('Ready for Pickup', readyCount, AppColors.statusReady),
+              _buildStatusRow(AppLocalizations.of(context)!.readyForPickup, readyCount, AppColors.statusReady),
             ],
           ),
         );
@@ -282,9 +281,8 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
         ),

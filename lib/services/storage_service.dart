@@ -123,6 +123,18 @@ class StorageService {
     return prefs.getBool(StorageKeys.isLoggedIn) ?? false;
   }
 
+  // ===== Onboarding =====
+
+  // Save onboarding completion status
+  Future<void> saveOnboardingCompleted(bool completed) async {
+    await prefs.setBool(StorageKeys.hasSeenOnboarding, completed);
+  }
+
+  // Get onboarding completion status
+  bool hasSeenOnboarding() {
+    return prefs.getBool(StorageKeys.hasSeenOnboarding) ?? false;
+  }
+
   // ===== Clear all data =====
 
   Future<void> clearAll() async {

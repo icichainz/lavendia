@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../../models/receipt_model.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -14,37 +16,115 @@ class ReceiptListScreen extends StatefulWidget {
 }
 
 class _ReceiptListScreenState extends State<ReceiptListScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
+  Timer? _pollingTimer;
+  Timer? _debounceTimer;
+  static const _pollingInterval = Duration(seconds: 30);
+
+  final _searchController = TextEditingController();
+  bool _isSearching = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _tabController = TabController(length: 2, vsync: this);
     _loadReceipts();
+    _startPolling();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPolling();
+    _debounceTimer?.cancel();
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else if (state == AppLifecycleState.paused) {
+      _stopPolling();
+    }
+  }
+
+  void _startPolling() {
+    _stopPolling();
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+      if (mounted) {
+        _loadReceipts();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   Future<void> _loadReceipts() async {
     final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
-    await receiptProvider.fetchMyReceipts();
+    await receiptProvider.fetchMyReceipts(
+      search: _searchQuery.isNotEmpty ? _searchQuery : null,
+    );
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _searchQuery = query);
+        _loadReceipts();
+      }
+    });
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchController.clear();
+        _searchQuery = '';
+        _loadReceipts();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Orders'),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: '${l10n.search} ${l10n.orders.toLowerCase()}...',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                  border: InputBorder.none,
+                ),
+                onChanged: _onSearchChanged,
+              )
+            : Text(l10n.myOrders),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: _toggleSearch,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Active'),
-            Tab(text: 'Completed'),
+          tabs: [
+            Tab(text: l10n.active),
+            Tab(text: l10n.completed),
           ],
         ),
       ),
@@ -120,13 +200,13 @@ class _ReceiptListScreenState extends State<ReceiptListScreen>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.store, size: 16, color: AppColors.textSecondary),
+                  Icon(Icons.store, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       receipt.laundromatName ?? receipt.laundromat?.name ?? 'Unknown',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                         fontSize: 14,
                       ),
                     ),
@@ -136,22 +216,22 @@ class _ReceiptListScreenState extends State<ReceiptListScreen>
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.textSecondary),
+                  Icon(Icons.inventory_2_outlined, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
                   const SizedBox(width: 8),
                   Text(
-                    '${receipt.itemsCount} items',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    AppLocalizations.of(context)!.itemsCount(receipt.itemsCount),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                       fontSize: 14,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     '\$${receipt.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -162,8 +242,8 @@ class _ReceiptListScreenState extends State<ReceiptListScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDateInfo('Drop-off', receipt.dropOffDate),
-                  _buildDateInfo('Expected', receipt.expectedPickupDate),
+                  _buildDateInfo(AppLocalizations.of(context)!.dropOff, receipt.dropOffDate),
+                  _buildDateInfo(AppLocalizations.of(context)!.expectedPickup, receipt.expectedPickupDate),
                 ],
               ),
             ],
@@ -197,16 +277,16 @@ class _ReceiptListScreenState extends State<ReceiptListScreen>
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.textTertiary,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           _formatDate(date),
-          style: const TextStyle(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodySmall?.color,
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -220,6 +300,7 @@ class _ReceiptListScreenState extends State<ReceiptListScreen>
   }
 
   Widget _buildEmptyState(bool isActive) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -227,25 +308,25 @@ class _ReceiptListScreenState extends State<ReceiptListScreen>
           Icon(
             isActive ? Icons.pending_actions : Icons.check_circle_outline,
             size: 64,
-            color: AppColors.grey300,
+            color: Theme.of(context).disabledColor,
           ),
           const SizedBox(height: 16),
           Text(
-            isActive ? 'No active orders' : 'No completed orders',
-            style: const TextStyle(
+            isActive ? l10n.translate('no_active_orders') : l10n.translate('no_completed_orders'),
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             isActive
-                ? 'Your active orders will appear here'
-                : 'Your completed orders will appear here',
-            style: const TextStyle(
+                ? l10n.translate('active_orders_appear_here')
+                : l10n.translate('completed_orders_appear_here'),
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.textTertiary,
+              color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
             ),
           ),
         ],

@@ -6,6 +6,7 @@ class UserModel {
   final String role; // customer, staff, admin
   final String? firstName;
   final String? lastName;
+  final String? profilePictureUrl;
   final int? laundromatId;
   final String? laundromatName;
   final bool isActive;
@@ -20,6 +21,7 @@ class UserModel {
     required this.role,
     this.firstName,
     this.lastName,
+    this.profilePictureUrl,
     this.laundromatId,
     this.laundromatName,
     required this.isActive,
@@ -54,6 +56,7 @@ class UserModel {
       role: json['role'] as String,
       firstName: json['first_name'] as String?,
       lastName: json['last_name'] as String?,
+      profilePictureUrl: json['profile_picture_url'] as String?,
       laundromatId: json['laundromat'] as int?,
       laundromatName: json['laundromat_name'] as String?,
       isActive: json['is_active'] as bool? ?? true,
@@ -92,6 +95,7 @@ class UserModel {
     String? role,
     String? firstName,
     String? lastName,
+    String? profilePictureUrl,
     int? laundromatId,
     String? laundromatName,
     bool? isActive,
@@ -106,6 +110,7 @@ class UserModel {
       role: role ?? this.role,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       laundromatId: laundromatId ?? this.laundromatId,
       laundromatName: laundromatName ?? this.laundromatName,
       isActive: isActive ?? this.isActive,

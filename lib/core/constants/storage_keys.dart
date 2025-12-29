@@ -15,4 +15,5 @@ class StorageKeys {
   // App Settings
   static const String themeMode = 'theme_mode';
   static const String language = 'language';
+  static const String hasSeenOnboarding = 'has_seen_onboarding';
 }

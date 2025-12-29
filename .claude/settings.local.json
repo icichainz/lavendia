@@ -6,7 +6,13 @@
       "Bash(venv/Scripts/python:*)",
       "Bash(../venv/Scripts/python:*)",
       "Bash(dir /s \"c:\\Users\\SSA_CLIMATE\\AndroidStudioProjects\\lavendia\\lib\")",
-      "Bash(flutter pub get:*)"
+      "Bash(flutter pub get:*)",
+      "Bash(for file in lib/features/staff/screens/*.dart)",
+      "Bash(done)",
+      "Bash(sort:*)",
+      "Bash(python manage.py:*)",
+      "Bash(dir /s \"c:\\\\Users\\\\SSA_CLIMATE\\\\AndroidStudioProjects\\\\lavendia\\\\backend\\\\apps\\\\receipts\\\\views.py\")",
+      "Bash(dir /s \"c:\\\\Users\\\\SSA_CLIMATE\\\\AndroidStudioProjects\\\\lavendia\\\\backend\\\\apps\\\\videos\\\\urls.py\")"
     ],
     "deny": [],
     "ask": []

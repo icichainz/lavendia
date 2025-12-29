@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../../models/receipt_model.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -19,23 +21,102 @@ class ReceiptDetailScreen extends StatefulWidget {
   State<ReceiptDetailScreen> createState() => _ReceiptDetailScreenState();
 }
 
-class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
+class _ReceiptDetailScreenState extends State<ReceiptDetailScreen>
+    with WidgetsBindingObserver {
+  Timer? _pollingTimer;
+  static const _pollingInterval = Duration(seconds: 30);
+  String? _previousStatus;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadReceiptDetail();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPolling();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else if (state == AppLifecycleState.paused) {
+      _stopPolling();
+    }
+  }
+
+  void _startPolling() {
+    _stopPolling();
+    // Only poll for active orders (not completed/cancelled)
+    final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+    final receipt = receiptProvider.selectedReceipt;
+    if (receipt != null && !receipt.isCompleted && receipt.status != 'cancelled') {
+      _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+        if (mounted) {
+          _loadReceiptDetail();
+        }
+      });
+    }
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
   }
 
   Future<void> _loadReceiptDetail() async {
     final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
     await receiptProvider.fetchReceiptDetail(widget.receiptId);
+
+    // Check if status changed and show notification
+    final receipt = receiptProvider.selectedReceipt;
+    if (receipt != null && _previousStatus != null && _previousStatus != receipt.status) {
+      _showStatusChangeNotification(receipt.status, receipt.statusDisplay);
+    }
+    _previousStatus = receipt?.status;
+
+    // Stop polling if order is completed
+    if (receipt?.isCompleted == true || receipt?.status == 'cancelled') {
+      _stopPolling();
+    }
+  }
+
+  void _showStatusChangeNotification(String status, String statusDisplay) {
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              _getStatusIcon(status),
+              color: Theme.of(context).colorScheme.onPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Text('${l10n.translate('status_updated')}: $statusDisplay'),
+          ],
+        ),
+        backgroundColor: AppColors.getStatusColor(status),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Order Details'),
+        title: Text(l10n.orderDetails),
       ),
       body: Consumer<ReceiptProvider>(
         builder: (context, receiptProvider, child) {
@@ -46,8 +127,8 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
           final receipt = receiptProvider.selectedReceipt;
 
           if (receipt == null) {
-            return const Center(
-              child: Text('Receipt not found'),
+            return Center(
+              child: Text(l10n.translate('receipt_not_found')),
             );
           }
 
@@ -88,11 +169,11 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -104,12 +185,12 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.receipt_long,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
               size: 30,
             ),
           ),
@@ -120,18 +201,18 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
               children: [
                 Text(
                   receipt.receiptNumber,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   receipt.laundromatName ?? receipt.laundromat?.name ?? 'Unknown',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -139,10 +220,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
           ),
           Text(
             '\$${receipt.price.toStringAsFixed(2)}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -151,14 +232,15 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   }
 
   Widget _buildStatusCard(ReceiptModel receipt) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -167,11 +249,11 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Status',
+          Text(
+            l10n.status,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 12),
@@ -214,7 +296,6 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
     return Row(
       children: statuses.asMap().entries.map((entry) {
         final index = entry.key;
-        final status = entry.value;
         final isCompleted = index <= currentIndex;
         final isLast = index == statuses.length - 1;
 
@@ -228,10 +309,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
                   shape: BoxShape.circle,
                   color: isCompleted
                       ? AppColors.getStatusColor(currentStatus)
-                      : AppColors.grey200,
+                      : Theme.of(context).disabledColor.withValues(alpha: 0.3),
                 ),
                 child: isCompleted
-                    ? const Icon(Icons.check, size: 14, color: AppColors.white)
+                    ? Icon(Icons.check, size: 14, color: Theme.of(context).colorScheme.onPrimary)
                     : null,
               ),
               if (!isLast)
@@ -240,7 +321,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
                     height: 2,
                     color: isCompleted && index < currentIndex
                         ? AppColors.getStatusColor(currentStatus)
-                        : AppColors.grey200,
+                        : Theme.of(context).disabledColor.withValues(alpha: 0.3),
                   ),
                 ),
             ],
@@ -251,14 +332,15 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   }
 
   Widget _buildDatesCard(ReceiptModel receipt) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -267,20 +349,20 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Dates',
+          Text(
+            l10n.dates,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 16),
-          _buildDateRow(Icons.login, 'Drop-off', receipt.dropOffDate),
+          _buildDateRow(Icons.login, l10n.dropOff, receipt.dropOffDate),
           const SizedBox(height: 12),
-          _buildDateRow(Icons.schedule, 'Expected Pickup', receipt.expectedPickupDate),
+          _buildDateRow(Icons.schedule, l10n.expectedPickup, receipt.expectedPickupDate),
           if (receipt.actualPickupDate != null) ...[
             const SizedBox(height: 12),
-            _buildDateRow(Icons.logout, 'Actual Pickup', receipt.actualPickupDate!),
+            _buildDateRow(Icons.logout, l10n.translate('actual_pickup'), receipt.actualPickupDate!),
           ],
         ],
       ),
@@ -290,13 +372,13 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   Widget _buildDateRow(IconData icon, String label, DateTime date) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.textSecondary),
+        Icon(icon, size: 20, color: Theme.of(context).textTheme.bodySmall?.color),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodySmall?.color,
               fontSize: 14,
             ),
           ),
@@ -313,14 +395,15 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   }
 
   Widget _buildItemsCard(ReceiptModel receipt) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -332,21 +415,21 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Items',
+              Text(
+                l10n.items,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).textTheme.bodySmall?.color,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.grey100,
+                  color: Theme.of(context).disabledColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${receipt.itemsCount} items',
+                  l10n.itemsCount(receipt.itemsCount),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -358,9 +441,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
           const SizedBox(height: 12),
           Text(
             receipt.itemsDescription,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ],
@@ -369,6 +452,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   }
 
   Widget _buildInstructionsCard(ReceiptModel receipt) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -383,9 +467,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
             children: [
               Icon(Icons.info_outline, color: AppColors.warning, size: 20),
               const SizedBox(width: 8),
-              const Text(
-                'Special Instructions',
-                style: TextStyle(
+              Text(
+                l10n.specialInstructions,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.warning,
@@ -396,9 +480,9 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
           const SizedBox(height: 8),
           Text(
             receipt.specialInstructions!,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ],
@@ -407,14 +491,15 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   }
 
   Widget _buildVideosSection(ReceiptModel receipt) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Theme.of(context).shadowColor.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -423,11 +508,11 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Videos',
+          Text(
+            l10n.videos,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).textTheme.bodySmall?.color,
             ),
           ),
           const SizedBox(height: 12),
@@ -437,10 +522,10 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.grey100,
+                  color: Theme.of(context).disabledColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.play_circle_outline, color: AppColors.primary),
+                child: Icon(Icons.play_circle_outline, color: Theme.of(context).colorScheme.primary),
               ),
               title: Text(video.displayName),
               subtitle: Text(video.durationFormatted),
@@ -460,6 +545,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
   }
 
   Widget _buildQRCodeButton(ReceiptModel receipt) {
+    final l10n = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -474,7 +560,7 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
           );
         },
         icon: const Icon(Icons.qr_code),
-        label: const Text('Show QR Code for Pickup'),
+        label: Text(l10n.showQrCode),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           backgroundColor: AppColors.statusReady,

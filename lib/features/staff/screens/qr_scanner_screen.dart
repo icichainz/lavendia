@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../providers/receipt_provider.dart';
 import '../../shared/widgets/loading_indicator.dart';
 
@@ -35,6 +36,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Future<void> _processQRCode(String qrData) async {
     if (_isProcessing || _hasScanned) return;
 
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isProcessing = true;
       _hasScanned = true;
@@ -45,13 +47,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final parts = qrData.split(':');
 
       if (parts.length < 3 || parts[0] != 'LAVENDIA') {
-        _showError('Invalid QR code format');
+        _showError(l10n.translate('invalid_qr'));
         return;
       }
 
       final receiptId = int.tryParse(parts[1]);
       if (receiptId == null) {
-        _showError('Invalid receipt ID');
+        _showError(l10n.translate('invalid_qr'));
         return;
       }
 
@@ -60,7 +62,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final success = await receiptProvider.fetchReceiptDetail(receiptId);
 
       if (!success || receiptProvider.selectedReceipt == null) {
-        _showError('Receipt not found');
+        _showError(l10n.translate('receipt_not_found'));
         return;
       }
 
@@ -99,6 +101,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   void _showPickupConfirmation(int receiptId, String receiptNumber, String currentStatus) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -108,22 +111,22 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         ),
         title: Row(
           children: [
-            Icon(Icons.qr_code_scanner, color: AppColors.primary),
+            Icon(Icons.qr_code_scanner, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 12),
-            const Text('Receipt Found'),
+            Text(l10n.translate('receipt_found')),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('Receipt #', receiptNumber),
+            _buildInfoRow(l10n.translate('receipt_number'), receiptNumber),
             const SizedBox(height: 8),
-            _buildInfoRow('Status', currentStatus),
+            _buildInfoRow(l10n.status, currentStatus),
             const SizedBox(height: 16),
-            const Text(
-              'Mark this order as completed?',
-              style: TextStyle(
+            Text(
+              l10n.translate('mark_completed_question'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -136,14 +139,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               Navigator.of(context).pop();
               setState(() => _hasScanned = false);
             },
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => _completePickup(receiptId),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.statusReady,
             ),
-            child: const Text('Complete Pickup'),
+            child: Text(l10n.translate('complete_pickup')),
           ),
         ],
       ),
@@ -156,9 +159,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).textTheme.bodySmall?.color,
           ),
         ),
         Text(
@@ -182,15 +184,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final success = await receiptProvider.completeReceipt(receiptId);
 
       if (success && mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order marked as completed!'),
+          SnackBar(
+            content: Text(l10n.translate('order_completed')),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.of(context).pop(); // Return to previous screen
       } else if (mounted) {
-        _showError(receiptProvider.errorMessage ?? 'Failed to complete pickup');
+        _showError(receiptProvider.errorMessage ?? AppLocalizations.of(context)!.translate('receipt_create_failed'));
       }
     } catch (e) {
       _showError('Error: $e');
@@ -203,9 +206,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Text(l10n.scanQrCode),
         actions: [
           IconButton(
             icon: Icon(
@@ -247,7 +251,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     height: 280,
                     decoration: BoxDecoration(
                       color: Colors.transparent,
-                      border: Border.all(color: AppColors.primary, width: 3),
+                      border: Border.all(color: Theme.of(context).colorScheme.primary, width: 3),
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
@@ -277,7 +281,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Point camera at customer\'s QR code',
+                  l10n.translate('point_camera'),
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.9),
                     fontSize: 16,
