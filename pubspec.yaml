@@ -62,6 +62,14 @@ dependencies:
   intl: ^0.19.0
   logger: ^2.0.2
 
+  # Charts & Analytics
+  fl_chart: ^0.69.0
+
+  # File handling for exports
+  path_provider: ^2.1.1
+  share_plus: ^7.2.1
+  permission_handler: ^11.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

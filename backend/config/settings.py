@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'apps.laundromats',
     'apps.receipts',
     'apps.videos',
+    'apps.analytics',
 ]
 
 MIDDLEWARE = [

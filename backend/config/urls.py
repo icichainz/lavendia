@@ -14,6 +14,7 @@ from apps.users.views import UserViewSet
 from apps.laundromats.views import LaundromatViewSet
 from apps.receipts.views import ReceiptViewSet
 from apps.videos.views import VideoViewSet
+from apps.analytics.views import AnalyticsViewSet
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -21,6 +22,7 @@ router.register(r'users', UserViewSet, basename='user')
 router.register(r'laundromats', LaundromatViewSet, basename='laundromat')
 router.register(r'receipts', ReceiptViewSet, basename='receipt')
 router.register(r'videos', VideoViewSet, basename='video')
+router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 
 urlpatterns = [
     # Admin

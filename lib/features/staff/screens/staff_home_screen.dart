@@ -9,6 +9,7 @@ import '../../shared/screens/profile_screen.dart';
 import 'receipt_management_screen.dart';
 import 'create_receipt_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'analytics_screen.dart';
 
 class StaffHomeScreen extends StatefulWidget {
   const StaffHomeScreen({super.key});
@@ -144,45 +145,67 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   }
 
   Widget _buildQuickActions() {
-    return Row(
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
       children: [
-        Expanded(
-          child: _buildActionCard(
-            icon: Icons.add_circle_outline,
-            label: AppLocalizations.of(context)!.createReceipt,
-            color: AppColors.primary,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CreateReceiptScreen()),
-              );
-            },
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.add_circle_outline,
+                label: l10n.createReceipt,
+                color: AppColors.primary,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CreateReceiptScreen()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.qr_code_scanner,
+                label: l10n.scanQrCode,
+                color: AppColors.statusReady,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const QRScannerScreen()),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildActionCard(
-            icon: Icons.qr_code_scanner,
-            label: AppLocalizations.of(context)!.scanQrCode,
-            color: AppColors.statusReady,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QRScannerScreen()),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildActionCard(
-            icon: Icons.list_alt,
-            label: '${AppLocalizations.of(context)!.all} ${AppLocalizations.of(context)!.orders}',
-            color: AppColors.secondary,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ReceiptManagementScreen()),
-              );
-            },
-          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.list_alt,
+                label: '${l10n.all} ${l10n.orders}',
+                color: AppColors.secondary,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ReceiptManagementScreen()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.analytics_outlined,
+                label: l10n.translate('analytics'),
+                color: AppColors.info,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );
