@@ -211,13 +211,13 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Customer Section
-                    _buildSectionHeader('Customer Information'),
+                    _buildSectionHeader(l10n.translate('customer_information')),
                     const SizedBox(height: 12),
                     _buildCustomerSelector(),
                     const SizedBox(height: 24),
 
                     // Items Section
-                    _buildSectionHeader('Laundry Items'),
+                    _buildSectionHeader(l10n.translate('laundry_items')),
                     const SizedBox(height: 12),
                     CustomTextField(
                       controller: _itemsDescriptionController,
@@ -277,7 +277,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                     const SizedBox(height: 24),
 
                     // Pickup Date Section
-                    _buildSectionHeader('Expected Pickup'),
+                    _buildSectionHeader(l10n.expectedPickup),
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: _selectDate,
@@ -320,7 +320,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                     const SizedBox(height: 24),
 
                     // Instructions Section
-                    _buildSectionHeader('Special Instructions (Optional)'),
+                    _buildSectionHeader(l10n.translate('special_instructions_optional')),
                     const SizedBox(height: 12),
                     CustomTextField(
                       controller: _instructionsController,

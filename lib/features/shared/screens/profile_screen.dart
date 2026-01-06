@@ -62,16 +62,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       if (success) {
         setState(() => _isEditing = false);
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
+          SnackBar(
+            content: Text(l10n?.translate('profile_updated') ?? 'Profile updated successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
       } else {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Failed to update profile'),
+            content: Text(authProvider.errorMessage ?? l10n?.translate('profile_update_failed') ?? 'Failed to update profile'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -83,11 +85,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
+    final l10n = AppLocalizations.of(context);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Change Password'),
+        title: Text(l10n?.changePassword ?? 'Change Password'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -95,24 +98,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextField(
                 controller: oldPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Current Password',
+                decoration: InputDecoration(
+                  labelText: l10n?.translate('current_password') ?? 'Current Password',
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: newPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'New Password',
+                decoration: InputDecoration(
+                  labelText: l10n?.translate('new_password') ?? 'New Password',
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: confirmPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm New Password',
+                decoration: InputDecoration(
+                  labelText: l10n?.confirmPassword ?? 'Confirm New Password',
                 ),
               ),
             ],
@@ -121,14 +124,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               if (newPasswordController.text != confirmPasswordController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Passwords do not match'),
+                  SnackBar(
+                    content: Text(l10n?.translate('password_mismatch') ?? 'Passwords do not match'),
                     backgroundColor: AppColors.error,
                   ),
                 );
@@ -147,14 +150,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      success ? 'Password changed successfully!' : authProvider.errorMessage ?? 'Failed to change password',
+                      success ? (l10n?.translate('password_changed') ?? 'Password changed successfully!') : authProvider.errorMessage ?? 'Failed to change password',
                     ),
                     backgroundColor: success ? AppColors.success : AppColors.error,
                   ),
                 );
               }
             },
-            child: const Text('Change'),
+            child: Text(l10n?.translate('change') ?? 'Change'),
           ),
         ],
       ),
@@ -238,16 +241,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showImageSourceDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Choose Image Source'),
+        title: Text(l10n?.translate('choose_image_source') ?? 'Choose Image Source'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
+              title: Text(l10n?.translate('camera') ?? 'Camera'),
               onTap: () {
                 Navigator.pop(context);
                 _pickAndUploadImage(ImageSource.camera);
@@ -255,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
+              title: Text(l10n?.translate('gallery') ?? 'Gallery'),
               onTap: () {
                 Navigator.pop(context);
                 _pickAndUploadImage(ImageSource.gallery);
@@ -285,11 +289,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         setState(() => _isUploadingImage = false);
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               success
-                  ? 'Profile picture updated successfully!'
+                  ? (l10n?.translate('profile_picture_updated') ?? 'Profile picture updated successfully!')
                   : authProvider.errorMessage ?? 'Failed to upload image',
             ),
             backgroundColor: success ? AppColors.success : AppColors.error,
@@ -299,9 +304,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isUploadingImage = false);
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('${l10n?.error ?? 'Error'}: ${e.toString()}'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -310,22 +316,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: Text(l10n?.logout ?? 'Logout'),
+        content: Text(l10n?.translate('logout_confirm') ?? 'Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
             ),
-            child: const Text('Logout'),
+            child: Text(l10n?.logout ?? 'Logout'),
           ),
         ],
       ),
@@ -345,9 +352,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n?.profile ?? 'Profile'),
         actions: [
           if (!_isEditing)
             IconButton(
@@ -491,9 +499,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Personal Information',
-                          style: TextStyle(
+                        Text(
+                          l10n?.translate('personal_information') ?? 'Personal Information',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -504,7 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Expanded(
                               child: CustomTextField(
                                 controller: _firstNameController,
-                                label: 'First Name',
+                                label: l10n?.firstName ?? 'First Name',
                                 prefixIcon: const Icon(Icons.person_outline),
                                 enabled: _isEditing,
                               ),
@@ -513,7 +521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Expanded(
                               child: CustomTextField(
                                 controller: _lastNameController,
-                                label: 'Last Name',
+                                label: l10n?.lastName ?? 'Last Name',
                                 enabled: _isEditing,
                               ),
                             ),
@@ -522,16 +530,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         CustomTextField(
                           controller: _emailController,
-                          label: 'Email',
+                          label: l10n?.email ?? 'Email',
                           prefixIcon: const Icon(Icons.email_outlined),
                           keyboardType: TextInputType.emailAddress,
                           enabled: _isEditing,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Email is required';
+                              return l10n?.translate('email_required') ?? 'Email is required';
                             }
                             if (!value.contains('@')) {
-                              return 'Enter a valid email';
+                              return l10n?.translate('enter_valid_email') ?? 'Enter a valid email';
                             }
                             return null;
                           },
@@ -539,13 +547,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         CustomTextField(
                           controller: _phoneController,
-                          label: 'Phone',
+                          label: l10n?.phone ?? 'Phone',
                           prefixIcon: const Icon(Icons.phone_outlined),
                           keyboardType: TextInputType.phone,
                           enabled: _isEditing,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Phone is required';
+                              return l10n?.translate('phone_required') ?? 'Phone is required';
                             }
                             return null;
                           },
@@ -564,13 +572,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     _emailController.text = user?.email ?? '';
                                     _phoneController.text = user?.phone ?? '';
                                   },
-                                  child: const Text('Cancel'),
+                                  child: Text(l10n?.cancel ?? 'Cancel'),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: CustomButton(
-                                  text: 'Save',
+                                  text: l10n?.save ?? 'Save',
                                   onPressed: _saveProfile,
                                 ),
                               ),
@@ -656,7 +664,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // App Info
                 Text(
-                  'Lavendia v1.0.0',
+                  l10n?.translate('app_version') ?? 'Lavendia v1.0.0',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                   ),

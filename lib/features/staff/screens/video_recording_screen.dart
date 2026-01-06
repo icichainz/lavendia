@@ -49,7 +49,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        _showError('No camera found on this device');
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          _showError(l10n?.translate('no_camera_found') ?? 'No camera found on this device');
+        }
         return;
       }
 
@@ -73,7 +76,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
         });
       }
     } catch (e) {
-      _showError('Failed to initialize camera: $e');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        _showError('${l10n?.translate('camera_init_failed') ?? 'Failed to initialize camera'}: $e');
+      }
     }
   }
 
@@ -91,7 +97,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
           _recordedVideoPath = video.path;
         });
       } catch (e) {
-        _showError('Failed to stop recording: $e');
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          _showError('${l10n?.translate('recording_stop_failed') ?? 'Failed to stop recording'}: $e');
+        }
       }
     } else {
       // Start recording
@@ -105,7 +114,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
         // Update recording duration every second
         _updateRecordingDuration();
       } catch (e) {
-        _showError('Failed to start recording: $e');
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          _showError('${l10n?.translate('recording_start_failed') ?? 'Failed to start recording'}: $e');
+        }
       }
     }
   }
@@ -136,7 +148,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
         });
       }
     } catch (e) {
-      _showError('Failed to pick video: $e');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        _showError('${l10n?.translate('video_pick_failed') ?? 'Failed to pick video'}: $e');
+      }
     }
   }
 
@@ -414,7 +429,10 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
         setState(() {});
       }
     } catch (e) {
-      _showError('Failed to switch camera: $e');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        _showError('${l10n?.translate('camera_switch_failed') ?? 'Failed to switch camera'}: $e');
+      }
     }
   }
 

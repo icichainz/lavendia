@@ -46,9 +46,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
           _hasError = true;
-          _errorMessage = 'Failed to load video: ${e.toString()}';
+          _errorMessage = '${l10n?.translate('video_load_failed') ?? 'Failed to load video'}: ${e.toString()}';
         });
       }
     }

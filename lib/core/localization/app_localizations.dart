@@ -249,6 +249,41 @@ class AppLocalizations {
       'no_analytics_data': 'No analytics data available',
       'revenue': 'Revenue',
       'customers': 'Customers',
+
+      // Staff Dashboard
+      'staff_dashboard': 'Staff Dashboard',
+      'quick_actions': 'Quick Actions',
+
+      // Profile additional
+      'personal_information': 'Personal Information',
+      'email_required': 'Email is required',
+      'enter_valid_email': 'Enter a valid email',
+      'phone_required': 'Phone is required',
+      'profile_update_failed': 'Failed to update profile',
+      'choose_image_source': 'Choose Image Source',
+      'camera': 'Camera',
+      'gallery': 'Gallery',
+      'profile_picture_updated': 'Profile picture updated successfully!',
+      'change': 'Change',
+      'app_version': 'Lavendia v1.0.0',
+
+      // Create Receipt additional
+      'customer_information': 'Customer Information',
+      'laundry_items': 'Laundry Items',
+
+      // Video/Camera errors
+      'no_camera_found': 'No camera found on this device',
+      'camera_init_failed': 'Failed to initialize camera',
+      'recording_stop_failed': 'Failed to stop recording',
+      'recording_start_failed': 'Failed to start recording',
+      'video_pick_failed': 'Failed to pick video',
+      'camera_switch_failed': 'Failed to switch camera',
+      'video_load_failed': 'Failed to load video',
+
+      // Password reset
+      'enter_6_digit_code': 'Please enter a 6-digit code',
+      'code_verified': 'Code verified! Enter your new password.',
+      'password_reset_success': 'Password reset successfully!',
     },
     'fr': {
       // General
@@ -486,6 +521,41 @@ class AppLocalizations {
       'no_analytics_data': 'Aucune donnée analytique disponible',
       'revenue': 'Revenus',
       'customers': 'Clients',
+
+      // Staff Dashboard
+      'staff_dashboard': 'Tableau de Bord Personnel',
+      'quick_actions': 'Actions Rapides',
+
+      // Profile additional
+      'personal_information': 'Informations Personnelles',
+      'email_required': 'L\'email est requis',
+      'enter_valid_email': 'Entrez un email valide',
+      'phone_required': 'Le téléphone est requis',
+      'profile_update_failed': 'Échec de la mise à jour du profil',
+      'choose_image_source': 'Choisir la Source de l\'Image',
+      'camera': 'Caméra',
+      'gallery': 'Galerie',
+      'profile_picture_updated': 'Photo de profil mise à jour avec succès!',
+      'change': 'Changer',
+      'app_version': 'Lavendia v1.0.0',
+
+      // Create Receipt additional
+      'customer_information': 'Informations Client',
+      'laundry_items': 'Articles de Blanchisserie',
+
+      // Video/Camera errors
+      'no_camera_found': 'Aucune caméra trouvée sur cet appareil',
+      'camera_init_failed': 'Échec de l\'initialisation de la caméra',
+      'recording_stop_failed': 'Échec de l\'arrêt de l\'enregistrement',
+      'recording_start_failed': 'Échec du démarrage de l\'enregistrement',
+      'video_pick_failed': 'Échec de la sélection de la vidéo',
+      'camera_switch_failed': 'Échec du changement de caméra',
+      'video_load_failed': 'Échec du chargement de la vidéo',
+
+      // Password reset
+      'enter_6_digit_code': 'Veuillez entrer un code à 6 chiffres',
+      'code_verified': 'Code vérifié! Entrez votre nouveau mot de passe.',
+      'password_reset_success': 'Mot de passe réinitialisé avec succès!',
     },
   };
 

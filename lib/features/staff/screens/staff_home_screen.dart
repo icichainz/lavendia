@@ -38,7 +38,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Staff Dashboard'),  // Keep hardcoded as no translation key exists
+        title: Text(l10n.translate('staff_dashboard')),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -64,7 +64,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
 
               // Quick Actions
               Text(
-                'Quick Actions',  // No translation key available
+                l10n.translate('quick_actions'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
