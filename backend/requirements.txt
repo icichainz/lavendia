@@ -29,6 +29,9 @@ gunicorn>=21.2.0
 # Static files
 whitenoise>=6.6.0
 
+# PDF generation
+reportlab>=4.0.0
+
 # Database (PostgreSQL - optional, can use SQLite for dev)
 # psycopg2-binary>=2.9.9
 
