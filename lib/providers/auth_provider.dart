@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
+import '../repositories/user_repository.dart';
+import '../repositories/receipt_repository.dart';
+import '../database/database_helper.dart';
 
 class AuthProvider with ChangeNotifier {
   final _authService = AuthService();
   final _storage = StorageService();
+  final _userRepository = UserRepository();
 
   UserModel? _user;
   bool _isAuthenticated = false;
@@ -68,6 +72,10 @@ class AuthProvider with ChangeNotifier {
         if (userResult['success']) {
           _user = userResult['user'];
           _isAuthenticated = true;
+
+          // Cache the user for offline access
+          await _userRepository.cacheUser(_user!, isCurrentUser: true);
+
           _isLoading = false;
           notifyListeners();
           return true;
@@ -134,6 +142,12 @@ class AuthProvider with ChangeNotifier {
   // Logout
   Future<void> logout() async {
     await _authService.logout();
+
+    // Clear all cached data
+    await _userRepository.clearCache();
+    await ReceiptRepository().clearCache();
+    await DatabaseHelper().clearAllData();
+
     _user = null;
     _isAuthenticated = false;
     _errorMessage = null;

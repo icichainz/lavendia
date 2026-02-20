@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
 import '../models/receipt_model.dart';
-import '../services/receipt_service.dart';
+import '../repositories/receipt_repository.dart';
 
 class ReceiptProvider with ChangeNotifier {
-  final _receiptService = ReceiptService();
+  final _receiptRepository = ReceiptRepository();
 
   List<ReceiptModel> _receipts = [];
   ReceiptModel? _selectedReceipt;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isOffline = false;
+  bool _isFromCache = false;
 
   // Getters
   List<ReceiptModel> get receipts => _receipts;
   ReceiptModel? get selectedReceipt => _selectedReceipt;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isOffline => _isOffline;
+  bool get isFromCache => _isFromCache;
+
+  // Current user ID for caching
+  int? _currentUserId;
+
+  void setCurrentUserId(int userId) {
+    _currentUserId = userId;
+  }
 
   // Get active receipts
   List<ReceiptModel> get activeReceipts {
@@ -26,25 +37,44 @@ class ReceiptProvider with ChangeNotifier {
     return _receipts.where((r) => r.isCompleted).toList();
   }
 
+  // Initialize background refresh callbacks
+  void _setupBackgroundRefresh() {
+    _receiptRepository.onMyReceiptsRefreshed = (receipts) {
+      _receipts = receipts;
+      _isFromCache = false;
+      notifyListeners();
+    };
+
+    _receiptRepository.onActiveReceiptsRefreshed = (receipts) {
+      _receipts = receipts;
+      _isFromCache = false;
+      notifyListeners();
+    };
+  }
+
   // Fetch all receipts
   Future<void> fetchReceipts({
     String? status,
     int? laundromatId,
     String? search,
+    bool forceRefresh = false,
   }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _receiptService.getReceipts(
+      final result = await _receiptRepository.getReceipts(
         status: status,
         laundromatId: laundromatId,
         search: search,
+        forceRefresh: forceRefresh,
       );
 
       if (result['success']) {
         _receipts = result['receipts'];
+        _isFromCache = result['fromCache'] ?? false;
+        _isOffline = result['offline'] ?? false;
       } else {
         _errorMessage = result['message'];
       }
@@ -56,17 +86,28 @@ class ReceiptProvider with ChangeNotifier {
     }
   }
 
-  // Fetch my receipts (for customers)
-  Future<void> fetchMyReceipts({String? search}) async {
+  // Fetch my receipts (for customers) - with caching
+  Future<void> fetchMyReceipts({
+    String? search,
+    bool forceRefresh = false,
+  }) async {
+    _setupBackgroundRefresh();
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _receiptService.getMyReceipts(search: search);
+      final result = await _receiptRepository.getMyReceipts(
+        search: search,
+        forceRefresh: forceRefresh,
+        currentUserId: _currentUserId,
+      );
 
       if (result['success']) {
         _receipts = result['receipts'];
+        _isFromCache = result['fromCache'] ?? false;
+        _isOffline = result['offline'] ?? false;
       } else {
         _errorMessage = result['message'];
       }
@@ -78,17 +119,23 @@ class ReceiptProvider with ChangeNotifier {
     }
   }
 
-  // Fetch active receipts
-  Future<void> fetchActiveReceipts() async {
+  // Fetch active receipts - with caching
+  Future<void> fetchActiveReceipts({bool forceRefresh = false}) async {
+    _setupBackgroundRefresh();
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _receiptService.getActiveReceipts();
+      final result = await _receiptRepository.getActiveReceipts(
+        forceRefresh: forceRefresh,
+      );
 
       if (result['success']) {
         _receipts = result['receipts'];
+        _isFromCache = result['fromCache'] ?? false;
+        _isOffline = result['offline'] ?? false;
       } else {
         _errorMessage = result['message'];
       }
@@ -100,17 +147,22 @@ class ReceiptProvider with ChangeNotifier {
     }
   }
 
-  // Fetch receipt detail
-  Future<bool> fetchReceiptDetail(int id) async {
+  // Fetch receipt detail - with caching
+  Future<bool> fetchReceiptDetail(int id, {bool forceRefresh = false}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final result = await _receiptService.getReceiptDetail(id);
+      final result = await _receiptRepository.getReceiptDetail(
+        id,
+        forceRefresh: forceRefresh,
+      );
 
       if (result['success']) {
         _selectedReceipt = result['receipt'];
+        _isFromCache = result['fromCache'] ?? false;
+        _isOffline = result['offline'] ?? false;
         _isLoading = false;
         notifyListeners();
         return true;
@@ -144,7 +196,7 @@ class ReceiptProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _receiptService.createReceipt(
+      final result = await _receiptRepository.createReceipt(
         customerId: customerId,
         laundromatId: laundromatId,
         staffId: staffId,
@@ -182,7 +234,7 @@ class ReceiptProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _receiptService.updateReceiptStatus(id, status);
+      final result = await _receiptRepository.updateReceiptStatus(id, status);
 
       if (result['success']) {
         final updatedReceipt = result['receipt'] as ReceiptModel;
@@ -222,7 +274,7 @@ class ReceiptProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _receiptService.completeReceipt(id);
+      final result = await _receiptRepository.completeReceipt(id);
 
       if (result['success']) {
         final updatedReceipt = result['receipt'] as ReceiptModel;
@@ -264,6 +316,16 @@ class ReceiptProvider with ChangeNotifier {
   // Clear error
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Clear all cache (on logout)
+  Future<void> clearCache() async {
+    await _receiptRepository.clearCache();
+    _receipts = [];
+    _selectedReceipt = null;
+    _isFromCache = false;
+    _isOffline = false;
     notifyListeners();
   }
 }

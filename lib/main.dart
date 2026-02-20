@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,9 @@ import 'providers/theme_provider.dart';
 import 'providers/analytics_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
+import 'services/notification_service.dart';
+import 'services/order_monitor_service.dart';
+import 'database/database_helper.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/staff/screens/staff_home_screen.dart';
@@ -23,6 +27,17 @@ void main() async {
   // Initialize services
   await StorageService().init();
   ApiService().init();
+
+  // Initialize local database for caching
+  await DatabaseHelper().database;
+
+  // Initialize notification service
+  await NotificationService().initialize();
+
+  // Initialize foreground service (Android only)
+  if (Platform.isAndroid) {
+    await OrderMonitorService().initialize();
+  }
 
   runApp(const MyApp());
 }
@@ -108,6 +123,23 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Navigate based on auth state
     if (authProvider.isAuthenticated) {
+      // Start foreground service for customers on Android
+      if (Platform.isAndroid && authProvider.isCustomer) {
+        final orderMonitorService = OrderMonitorService();
+        // Get access token from storage
+        final accessToken = await storageService.getAccessToken();
+        // Save credentials for background polling
+        await orderMonitorService.saveUserCredentials(
+          accessToken: accessToken ?? '',
+          userRole: 'customer',
+        );
+        // Request notification permission and start service
+        await NotificationService().requestPermissions();
+        await orderMonitorService.start();
+      }
+
+      if (!mounted) return;
+
       // Navigate based on user role
       if (authProvider.isCustomer) {
         Navigator.of(context).pushReplacement(
@@ -123,6 +155,15 @@ class _SplashScreenState extends State<SplashScreen> {
         );
       }
     } else {
+      // Stop foreground service when not authenticated
+      if (Platform.isAndroid) {
+        final orderMonitorService = OrderMonitorService();
+        await orderMonitorService.stop();
+        await orderMonitorService.clearUserCredentials();
+      }
+
+      if (!mounted) return;
+
       // Navigate to Login
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

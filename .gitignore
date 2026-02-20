@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Database files
+*.sqlite3
+*.sqlite
+*.db
+
+# Generated files
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/GeneratedPluginRegistrant.swift
+**/generated_plugins.cmake
+
+# Claude local settings
+.claude/settings.local.json
+
+# Windows null file
+nul

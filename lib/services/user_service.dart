@@ -52,4 +52,37 @@ class UserService {
       rethrow;
     }
   }
+
+  /// Get all staff
+  Future<List<UserModel>> getAllStaff() async {
+    try {
+      final response = await _api.get(ApiConstants.staff);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => UserModel.fromJson(json)).toList();
+      }
+      return [];
+    } on DioException {
+      rethrow;
+    }
+  }
+
+  /// Search staff by name, username, or email
+  Future<List<UserModel>> searchStaff(String query) async {
+    try {
+      final response = await _api.get(
+        ApiConstants.staff,
+        queryParameters: {'search': query},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => UserModel.fromJson(json)).toList();
+      }
+      return [];
+    } on DioException {
+      rethrow;
+    }
+  }
 }

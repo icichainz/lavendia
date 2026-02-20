@@ -284,6 +284,20 @@ class AppLocalizations {
       'enter_6_digit_code': 'Please enter a 6-digit code',
       'code_verified': 'Code verified! Enter your new password.',
       'password_reset_success': 'Password reset successfully!',
+
+      // Notifications
+      'notification_order_received': 'Order Received',
+      'notification_order_pending': 'Your order #{orderNumber} has been received and is pending.',
+      'notification_laundry_update': 'Laundry Update',
+      'notification_order_washing': 'Your order #{orderNumber} is now being washed.',
+      'notification_order_drying': 'Your order #{orderNumber} is now drying.',
+      'notification_ready_pickup': 'Ready for Pickup!',
+      'notification_order_ready': 'Your order #{orderNumber} is ready to collect.',
+      'notification_order_complete': 'Order Complete',
+      'notification_order_completed': 'Your order #{orderNumber} has been picked up. Thank you!',
+      'notification_order_update': 'Order Update',
+      'notification_order_status': 'Your order #{orderNumber} status: {status}',
+      'notification_monitoring': 'Monitoring your laundry orders',
     },
     'fr': {
       // General
@@ -556,6 +570,20 @@ class AppLocalizations {
       'enter_6_digit_code': 'Veuillez entrer un code à 6 chiffres',
       'code_verified': 'Code vérifié! Entrez votre nouveau mot de passe.',
       'password_reset_success': 'Mot de passe réinitialisé avec succès!',
+
+      // Notifications
+      'notification_order_received': 'Commande Reçue',
+      'notification_order_pending': 'Votre commande #{orderNumber} a été reçue et est en attente.',
+      'notification_laundry_update': 'Mise à Jour Blanchisserie',
+      'notification_order_washing': 'Votre commande #{orderNumber} est en cours de lavage.',
+      'notification_order_drying': 'Votre commande #{orderNumber} est en cours de séchage.',
+      'notification_ready_pickup': 'Prêt pour le Retrait!',
+      'notification_order_ready': 'Votre commande #{orderNumber} est prête à être récupérée.',
+      'notification_order_complete': 'Commande Terminée',
+      'notification_order_completed': 'Votre commande #{orderNumber} a été récupérée. Merci!',
+      'notification_order_update': 'Mise à Jour Commande',
+      'notification_order_status': 'Votre commande #{orderNumber} statut: {status}',
+      'notification_monitoring': 'Surveillance de vos commandes de blanchisserie',
     },
   };
 
