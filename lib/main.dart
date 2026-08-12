@@ -126,13 +126,9 @@ class _SplashScreenState extends State<SplashScreen> {
       // Start foreground service for customers on Android
       if (Platform.isAndroid && authProvider.isCustomer) {
         final orderMonitorService = OrderMonitorService();
-        // Get access token from storage
-        final accessToken = await storageService.getAccessToken();
-        // Save credentials for background polling
-        await orderMonitorService.saveUserCredentials(
-          accessToken: accessToken ?? '',
-          userRole: 'customer',
-        );
+        // The task handler reads tokens from secure storage itself; it only
+        // needs to know a customer is signed in.
+        await orderMonitorService.saveUserCredentials(userRole: 'customer');
         // Request notification permission and start service
         await NotificationService().requestPermissions();
         await orderMonitorService.start();

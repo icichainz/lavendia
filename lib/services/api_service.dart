@@ -9,19 +9,27 @@ class ApiService {
   ApiService._internal();
 
   late final Dio _dio;
+
+  /// Interceptor-free client used only for the token refresh call, so that a
+  /// 401 on refresh cannot re-enter [_onError].
+  late final Dio _refreshClient;
+
   final _storage = StorageService();
   final _logger = Logger();
 
   // Initialize Dio
   void init() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: ApiConstants.headers,
-      ),
-    );
+    // Each Dio keeps a reference to the BaseOptions it is given, so build a
+    // fresh instance per client rather than sharing one mutable object.
+    BaseOptions buildOptions() => BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: ApiConstants.headers,
+        );
+
+    _dio = Dio(buildOptions());
+    _refreshClient = Dio(buildOptions());
 
     // Add interceptors
     _dio.interceptors.add(
@@ -72,13 +80,17 @@ class ApiService {
   ) async {
     _logger.e('ERROR[${error.response?.statusCode}] => ${error.requestOptions.uri}');
 
-    // If 401 error, try to refresh token
-    if (error.response?.statusCode == 401) {
+    // If 401 error, try to refresh token.
+    // Skipped when the failing request *is* the refresh call - otherwise this
+    // interceptor would call itself on every attempt and recurse unbounded.
+    if (error.response?.statusCode == 401 &&
+        !error.requestOptions.path.contains(ApiConstants.refresh)) {
       try {
         final refreshToken = await _storage.getRefreshToken();
         if (refreshToken != null) {
-          // Try to refresh token
-          final response = await _dio.post(
+          // Refresh over a bare client: _dio carries this interceptor, so
+          // reusing it here is the other half of the recursion above.
+          final response = await _refreshClient.post(
             ApiConstants.refresh,
             data: {'refresh': refreshToken},
             options: Options(headers: ApiConstants.headers),
@@ -87,6 +99,14 @@ class ApiService {
           if (response.statusCode == 200) {
             final newAccessToken = response.data['access'];
             await _storage.saveAccessToken(newAccessToken);
+
+            // The backend rotates refresh tokens and blacklists the previous
+            // one, so the replacement must be stored or the next refresh
+            // fails and the user is silently signed out.
+            final newRefreshToken = response.data['refresh'] as String?;
+            if (newRefreshToken != null) {
+              await _storage.saveRefreshToken(newRefreshToken);
+            }
 
             // Retry the original request
             final opts = error.requestOptions;
