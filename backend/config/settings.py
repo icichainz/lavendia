@@ -29,6 +29,10 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    # Required for SIMPLE_JWT's BLACKLIST_AFTER_ROTATION to take effect.
+    # Without it, RefreshToken.blacklist() raises AttributeError, which
+    # simplejwt swallows - rotation happens but old tokens stay valid.
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
