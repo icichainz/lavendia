@@ -5,8 +5,9 @@
     additive) - so the main config's domain-config does not apply here.
 
     Development commonly means pointing the app at a Django server on the
-    local network, e.g.:
-      flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api
+    local network via the API_BASE_URL dart-define; see QUICK_START.md for
+    the exact command. (It cannot be quoted here: XML forbids a double hyphen
+    inside a comment, and the flag contains one.)
 
     Android's network security config cannot express CIDR ranges, so rather
     than enumerating every possible LAN address we permit cleartext broadly.
