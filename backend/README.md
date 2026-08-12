@@ -197,8 +197,27 @@ python manage.py test
 3. Configure `ALLOWED_HOSTS`
 4. Set up PostgreSQL database
 5. Configure AWS S3 for media storage (optional)
-6. Run `python manage.py collectstatic`
-7. Use gunicorn: `gunicorn config.wsgi:application`
+6. **Run `python manage.py migrate`** — required on *every* deploy, not just
+   the first. See the warning below.
+7. Run `python manage.py collectstatic`
+8. Use gunicorn: `gunicorn config.wsgi:application`
+
+> **Deploying without `migrate` breaks login, not just refresh.**
+> `rest_framework_simplejwt.token_blacklist` is in `INSTALLED_APPS`, and with
+> it installed `RefreshToken.for_user()` writes an `OutstandingToken` row.
+> That runs on every **login**, so if the blacklist tables are missing both
+> `POST /api/auth/login/` and `POST /api/auth/refresh/` return 500 — a total
+> auth outage rather than graceful degradation.
+
+### Scheduled maintenance
+
+Every login and every token rotation inserts a row storing the full JWT.
+Nothing prunes them automatically, so schedule the bundled cleanup command
+(daily is fine) or the tables grow without bound:
+
+```bash
+python manage.py flushexpiredtokens
+```
 
 ## Environment Variables
 
