@@ -2,17 +2,19 @@
 <!--
     Default (release/profile) network policy.
 
-    Cleartext HTTP is denied everywhere except the two non-routable loopback
-    hosts used to reach a developer machine's Django server:
-      - 10.0.2.2  : the Android emulator's alias for the host machine
-      - localhost : reverse-tethered devices (adb reverse tcp:8000 tcp:8000)
+    Cleartext HTTP is denied everywhere except loopback. Only 127.0.0.1 and
+    localhost are allowlisted: they are unreachable from off-device, so an
+    attacker cannot MITM them, and exploiting them would require an already
+    installed malicious app serving on the loopback interface.
 
-    Neither address can reach the public internet, so allowing them does not
-    weaken production traffic. Any real API host must be https://.
+    10.0.2.2 is deliberately NOT here. It is the Android emulator's alias for
+    the host machine, but it is an ordinary routable RFC1918 address - on any
+    network numbered out of 10.0.0.0/8 a release build would happily send
+    bearer tokens in cleartext to whatever answers. The emulator only ever
+    runs debug/profile builds, and those use the permissive override in
+    android/app/src/debug/res/xml/network_security_config.xml.
 
-    Debug builds use a more permissive override in
-    android/app/src/debug/res/xml/network_security_config.xml so that a
-    physical device can hit a LAN IP during development.
+    Any real API host must be https://.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false">
@@ -22,7 +24,6 @@
     </base-config>
 
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">10.0.2.2</domain>
         <domain includeSubdomains="false">localhost</domain>
         <domain includeSubdomains="false">127.0.0.1</domain>
     </domain-config>

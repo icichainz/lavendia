@@ -103,11 +103,36 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api
 flutter build apk --dart-define=API_BASE_URL=https://api.example.com/api
 ```
 
-Android blocks cleartext HTTP by default. `10.0.2.2`, `localhost` and
-`127.0.0.1` are allowlisted in all build types; debug builds additionally
-permit any cleartext host so LAN IPs work. **Release builds must use
-`https://`** for anything else — see
-`android/app/src/main/res/xml/network_security_config.xml`.
+**For the LAN case the backend needs two changes too.** `runserver` binds
+`127.0.0.1` by default, and Django rejects unknown `Host` headers with a 400:
+
+```bash
+ALLOWED_HOSTS=localhost,127.0.0.1,10.0.2.2,192.168.1.20 \
+  python manage.py runserver 0.0.0.0:8000
+```
+
+(CORS is *not* involved — the Flutter client is native and sends no `Origin`
+header. Don't widen `CORS_ALLOWED_ORIGINS` to try to fix a LAN problem.)
+
+### Cleartext HTTP rules
+
+Both platforms block plaintext HTTP by default:
+
+| Build type | Android | iOS |
+|---|---|---|
+| debug | any host (permissive override) | loopback + local network |
+| profile | loopback only | loopback + local network |
+| release | loopback only | loopback + local network |
+
+`10.0.2.2` is **not** allowlisted in release — it is a routable `10.x` address,
+so a release build could otherwise leak tokens in cleartext on a corporate
+Wi-Fi. The emulator only runs debug/profile builds.
+
+`flutter run --profile` against a LAN IP will fail for this reason; use debug,
+or add `android/app/src/profile/res/xml/network_security_config.xml`.
+
+A release build with an `http://` URL throws at startup rather than shipping
+silently — see the `kReleaseMode` guard in [lib/main.dart](lib/main.dart).
 
 ## Common Issues
 

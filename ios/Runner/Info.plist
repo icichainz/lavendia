@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- iOS counterpart to android/app/src/main/res/xml/network_security_config.xml.
+	     App Transport Security already exempts loopback, so the iOS simulator
+	     reaching http://localhost:8000 works without this. A physical device
+	     pointed at a LAN IP via --dart-define=API_BASE_URL does not, and fails
+	     with an opaque NSURLErrorDomain -1022.
+
+	     NSAllowsLocalNetworking relaxes ATS only for local/link-local
+	     addresses; it does NOT permit arbitrary cleartext to the internet, so
+	     it is safe to ship. Do not replace it with NSAllowsArbitraryLoads. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

@@ -1,19 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Debug-only override. Replaces the main sourceSet file of the same name.
+    Debug-only override. This file wholly REPLACES the main sourceSet file of
+    the same name for debug builds (AGP resource merging is override, not
+    additive) - so the main config's domain-config does not apply here.
 
     Development commonly means pointing the app at a Django server on the
     local network, e.g.:
       flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api
 
     Android's network security config cannot express CIDR ranges, so rather
-    than enumerating every possible LAN address we permit cleartext broadly
-    here. This file is never part of a release build.
+    than enumerating every possible LAN address we permit cleartext broadly.
+    This file is never part of a release build.
+
+    User-installed CAs are trusted here so that debugging proxies (mitmproxy,
+    Charles, Proxyman) can inspect HTTPS traffic. targetSdk >= 24 excludes
+    user CAs by default, which is the right default for release and the wrong
+    one for development.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 </network-security-config>

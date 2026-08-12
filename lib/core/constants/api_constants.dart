@@ -18,10 +18,11 @@ class ApiConstants {
 
   /// True when [baseUrl] uses unencrypted HTTP.
   ///
-  /// Android only permits cleartext to the hosts allowlisted in
-  /// android/app/src/main/res/xml/network_security_config.xml (localhost,
-  /// 10.0.2.2 and private LAN ranges). A cleartext URL outside those hosts
-  /// will fail at the platform level before the request is sent.
+  /// Release builds on Android permit cleartext only to `localhost` and
+  /// `127.0.0.1` (see android/app/src/main/res/xml/network_security_config.xml).
+  /// Debug builds permit it to any host, so this getter - not the platform -
+  /// is what catches a release build wired to a plaintext URL. [main] asserts
+  /// on it at startup.
   static bool get isCleartext => baseUrl.startsWith('http://');
 
   // Auth Endpoints
