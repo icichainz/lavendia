@@ -16,9 +16,10 @@ import 'notification_service.dart';
 /// The callback for the foreground task
 @pragma('vm:entry-point')
 void startCallback() {
-  // The task handler runs in its own isolate, which does not inherit the
-  // main isolate's plugin registrations. Without this, plugin channels
-  // (secure storage, shared preferences) are unavailable here.
+  // Belt and braces: setTaskHandler() below already calls this (and
+  // WidgetsFlutterBinding.ensureInitialized) before wiring up the channel, so
+  // plugins do work in this isolate. Kept as an explicit statement of the
+  // dependency, since the handler reads secure storage.
   DartPluginRegistrant.ensureInitialized();
   FlutterForegroundTask.setTaskHandler(OrderMonitorTaskHandler());
 }
@@ -28,8 +29,31 @@ class OrderMonitorTaskHandler extends TaskHandler {
   final _logger = Logger();
   final _secureStorage = const FlutterSecureStorage();
 
-  /// Guards against a refresh storm when several polls overlap.
-  bool _isRefreshing = false;
+  /// One long-lived client, so polls reuse the connection instead of paying a
+  /// fresh TCP+TLS handshake every 30 seconds. The auth header is set per
+  /// request rather than on BaseOptions, since the token changes on refresh.
+  ///
+  /// Deliberately interceptor-free - a retry-on-401 interceptor here would
+  /// recurse through the refresh call below.
+  late final Dio _dio = Dio(BaseOptions(
+    baseUrl: ApiConstants.baseUrl,
+    headers: ApiConstants.headers,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
+
+  /// The in-flight refresh, if any.
+  ///
+  /// Overlapping polls are guaranteed, not hypothetical: flutter_foreground_task
+  /// dispatches onStart and onRepeatEvent without awaiting them, and the repeat
+  /// loop fires before its first delay. Holding the future (rather than a bool)
+  /// means a second poll joins the running refresh and gets the real result,
+  /// instead of being told the session is dead.
+  Future<String?>? _refreshInFlight;
+
+  /// Serialises polls so two runs cannot interleave their read-modify-write of
+  /// the cached status map and double-notify for the same change.
+  Future<void>? _pollInFlight;
 
   @override
   void onStart(DateTime timestamp, SendPort? sendPort) async {
@@ -64,43 +88,38 @@ class OrderMonitorTaskHandler extends TaskHandler {
     FlutterForegroundTask.launchApp('/');
   }
 
-  /// Build a bare Dio client for [token].
-  ///
-  /// Deliberately interceptor-free: the refresh path below calls this too, so
-  /// an interceptor that retried on 401 would recurse.
-  Dio _client(String token) => Dio(BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        headers: ApiConstants.authHeaders(token),
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ));
+  /// Per-request auth header for [token].
+  Options _auth(String token) =>
+      Options(headers: ApiConstants.authHeaders(token));
 
   /// Exchange the stored refresh token for a new access token.
   ///
-  /// Returns the new access token, or null if the session is unrecoverable
-  /// (no refresh token, or the server rejected it - e.g. expired past
-  /// REFRESH_TOKEN_LIFETIME, or blacklisted after rotation).
-  Future<String?> _refreshAccessToken() async {
-    if (_isRefreshing) {
-      _logger.d('Refresh already in flight, skipping');
-      return null;
-    }
-    _isRefreshing = true;
+  /// Concurrent callers share one in-flight request rather than each issuing
+  /// their own - important because the backend blacklists the token it was
+  /// given, so two simultaneous refreshes would kill each other's session.
+  Future<String?> _refreshAccessToken() =>
+      _refreshInFlight ??= _doRefresh().whenComplete(() {
+        _refreshInFlight = null;
+      });
+
+  /// Returns the new access token, or null if the session is unrecoverable.
+  Future<String?> _doRefresh() async {
+    // Hoisted so the catch below can compare it against what is in storage
+    // after a rejection.
+    String? refreshTokenSent;
 
     try {
-      final refreshToken =
+      refreshTokenSent =
           await _secureStorage.read(key: StorageKeys.refreshToken);
-      if (refreshToken == null) {
+      if (refreshTokenSent == null) {
         _logger.w('No refresh token stored - cannot recover session');
         return null;
       }
 
-      final response = await Dio(BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        headers: ApiConstants.headers,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      )).post(ApiConstants.refresh, data: {'refresh': refreshToken});
+      final response = await _dio.post(
+        ApiConstants.refresh,
+        data: {'refresh': refreshTokenSent},
+      );
 
       if (response.statusCode != 200) return null;
 
@@ -127,18 +146,64 @@ class OrderMonitorTaskHandler extends TaskHandler {
       _logger.i('Access token refreshed in background service');
       return newAccessToken;
     } on DioException catch (e) {
-      _logger.w('Background token refresh rejected: ${e.response?.statusCode}');
+      final status = e.response?.statusCode;
+
+      if (status == 400 || status == 401) {
+        // The refresh token was rejected. That can mean the session really is
+        // over - or that the foreground app refreshed first and blacklisted
+        // the token we just sent. Re-read storage: if it changed underneath
+        // us, the other isolate won and left us a usable access token.
+        final current =
+            await _secureStorage.read(key: StorageKeys.refreshToken);
+        if (current != null && current != refreshTokenSent) {
+          _logger.i('Refresh raced with the app; adopting its new token');
+          return _secureStorage.read(key: StorageKeys.accessToken);
+        }
+
+        _logger.w('Refresh token rejected ($status) - session ended');
+        return null;
+      }
+
+      // Timeout, DNS, no connectivity: transient, keep the session.
+      _logger.w('Background token refresh failed transiently: ${e.message}');
       return null;
     } catch (e) {
       _logger.e('Background token refresh failed: $e');
       return null;
-    } finally {
-      _isRefreshing = false;
     }
   }
 
-  /// Poll the API for status changes
-  Future<void> _pollForStatusChanges() async {
+  /// Tear down a session the server will no longer honour.
+  ///
+  /// Clears the role marker so later polls short-circuit, tells the user why
+  /// monitoring stopped, and stops the service rather than leaving a wakelock
+  /// held on a persistent notification that is no longer true.
+  Future<void> _endSession() async {
+    _logger.w('Session ended - stopping order monitoring');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(StorageKeys.userRole);
+      await prefs.remove('cached_order_statuses');
+
+      await NotificationService().showSessionExpiredNotification();
+    } catch (e) {
+      _logger.e('Error while ending session: $e');
+    } finally {
+      await FlutterForegroundTask.stopService();
+    }
+  }
+
+  /// Poll the API for status changes.
+  ///
+  /// Serialised: overlapping invocations join the running poll instead of
+  /// racing on the cached status map and double-notifying.
+  Future<void> _pollForStatusChanges() =>
+      _pollInFlight ??= _doPoll().whenComplete(() {
+        _pollInFlight = null;
+      });
+
+  Future<void> _doPoll() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userRole = prefs.getString(StorageKeys.userRole);
@@ -164,17 +229,26 @@ class OrderMonitorTaskHandler extends TaskHandler {
       // the service goes permanently silent an hour after login.
       Response response;
       try {
-        response = await _client(accessToken).get(ApiConstants.myReceipts);
+        response = await _dio.get(
+          ApiConstants.myReceipts,
+          options: _auth(accessToken),
+        );
       } on DioException catch (e) {
         if (e.response?.statusCode != 401) rethrow;
 
         _logger.i('Access token expired during poll, refreshing');
         final refreshedToken = await _refreshAccessToken();
         if (refreshedToken == null) {
-          _logger.w('Could not refresh - skipping poll until next interval');
+          // The session is over. Keep polling and we would issue two doomed
+          // requests every 30s forever, on a wakelock, while the persistent
+          // notification still claims orders are being monitored.
+          await _endSession();
           return;
         }
-        response = await _client(refreshedToken).get(ApiConstants.myReceipts);
+        response = await _dio.get(
+          ApiConstants.myReceipts,
+          options: _auth(refreshedToken),
+        );
       }
 
       if (response.statusCode == 200) {

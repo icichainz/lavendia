@@ -167,6 +167,43 @@ class NotificationService {
     _logger.i('Showed notification for order #$orderNumber: $status');
   }
 
+  /// Notify that background monitoring stopped because the session expired.
+  ///
+  /// Without this the foreground service simply goes quiet, and the customer
+  /// has no way to tell "no status changes" from "signed out an hour ago".
+  Future<void> showSessionExpiredNotification() async {
+    if (!_isInitialized) {
+      _logger.w('Notification service not initialized');
+      return;
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      orderStatusChannelId,
+      'Order Status Updates',
+      channelDescription: 'Notifications for laundry order status changes',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await _notifications.show(
+      _sessionExpiredNotificationId,
+      'Sign in again',
+      'Order updates are paused until you sign back in to Lavendia.',
+      details,
+      payload: 'session_expired',
+    );
+  }
+
+  /// Fixed id for the session-expired notice. Negative so it can never collide
+  /// with an order id, which is used directly as the notification id.
+  static const int _sessionExpiredNotificationId = -1;
+
   /// Get notification title and body based on status
   Map<String, String> _getStatusNotificationInfo(String status, String orderNumber) {
     switch (status.toLowerCase()) {
