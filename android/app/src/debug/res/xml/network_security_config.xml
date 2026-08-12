@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Debug-only override. Replaces the main sourceSet file of the same name.
+
+    Development commonly means pointing the app at a Django server on the
+    local network, e.g.:
+      flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api
+
+    Android's network security config cannot express CIDR ranges, so rather
+    than enumerating every possible LAN address we permit cleartext broadly
+    here. This file is never part of a release build.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -82,10 +82,32 @@ Login with: `admin` / `admin123`
 
 ### For Mobile Development:
 ```bash
-cd mobile
 flutter pub get
 flutter run
 ```
+
+### Pointing the app at your backend
+
+The API base URL defaults to `http://10.0.2.2:8000/api` (the Android
+emulator's alias for your host machine). Override it per-run without editing
+any source file:
+
+```bash
+# iOS simulator
+flutter run --dart-define=API_BASE_URL=http://localhost:8000/api
+
+# Physical device on the same Wi-Fi (use your machine's LAN IP)
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api
+
+# Production build
+flutter build apk --dart-define=API_BASE_URL=https://api.example.com/api
+```
+
+Android blocks cleartext HTTP by default. `10.0.2.2`, `localhost` and
+`127.0.0.1` are allowlisted in all build types; debug builds additionally
+permit any cleartext host so LAN IPs work. **Release builds must use
+`https://`** for anything else — see
+`android/app/src/main/res/xml/network_security_config.xml`.
 
 ## Common Issues
 
