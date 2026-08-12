@@ -83,20 +83,23 @@ class ReceiptModel {
     }
   }
 
-  // Get intake video
-  VideoModel? get intakeVideo {
-    return videos?.firstWhere(
-      (v) => v.videoType == 'intake',
-      orElse: () => videos!.first,
-    );
-  }
+  /// The intake video, or null if this receipt has none.
+  VideoModel? get intakeVideo => _videoOfType('intake');
 
-  // Get completion video
-  VideoModel? get completionVideo {
-    return videos?.firstWhere(
-      (v) => v.videoType == 'completion',
-      orElse: () => videos!.first,
-    );
+  /// The completion video, or null if this receipt has none.
+  VideoModel? get completionVideo => _videoOfType('completion');
+
+  /// Previously these used firstWhere(orElse: () => videos!.first), which
+  /// returned a completion video when asked for an intake one, and threw
+  /// 'Bad state: No element' when videos was an empty list.
+  VideoModel? _videoOfType(String type) {
+    final list = videos;
+    if (list == null) return null;
+
+    for (final video in list) {
+      if (video.videoType == type) return video;
+    }
+    return null;
   }
 
   // Check if has videos
@@ -134,7 +137,14 @@ class ReceiptModel {
       price: json['price'] != null ? double.parse(json['price'].toString()) : 0.0,
       qrCodeUrl: json['qr_code_url'] as String?,
       videos: json['videos'] != null
-          ? (json['videos'] as List).map((v) => VideoModel.fromJson(v as Map<String, dynamic>)).toList()
+          ? (json['videos'] as List)
+              .map((v) => VideoModel.fromJson(
+                    v as Map<String, dynamic>,
+                    // Nested videos use VideoListSerializer, which omits the
+                    // receipt FK. We already know it.
+                    receiptId: json['id'] as int,
+                  ))
+              .toList()
           : null,
       isActive: json['is_active'] as bool? ?? true,
       daysSinceDropoff: json['days_since_dropoff'] as int?,
