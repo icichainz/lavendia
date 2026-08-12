@@ -261,6 +261,10 @@ flutter test
 - Set `DEBUG=False`
 - Configure PostgreSQL
 - Set up AWS S3 for media storage
+- **Run `python manage.py migrate` on every deploy** — the JWT blacklist
+  tables are required by login, so a missed migration is a full auth outage
+- Schedule `python manage.py flushexpiredtokens` (daily) to prune the
+  blacklist, which otherwise grows without bound
 - Use gunicorn + nginx
 - Enable HTTPS
 

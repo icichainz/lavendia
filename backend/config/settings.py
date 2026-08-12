@@ -32,6 +32,11 @@ INSTALLED_APPS = [
     # Required for SIMPLE_JWT's BLACKLIST_AFTER_ROTATION to take effect.
     # Without it, RefreshToken.blacklist() raises AttributeError, which
     # simplejwt swallows - rotation happens but old tokens stay valid.
+    #
+    # NOTE: this app ships migrations that MUST be applied. With it installed,
+    # RefreshToken.for_user() writes an OutstandingToken row, and that runs on
+    # login - so missing tables break /auth/login/ as well as /auth/refresh/.
+    # Schedule `manage.py flushexpiredtokens` to prune the tables.
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
