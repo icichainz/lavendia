@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import '../core/constants/api_constants.dart';
 import 'storage_service.dart';
@@ -8,20 +9,32 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
+  /// RequestOptions.extra marker so a request is retried at most once after a
+  /// token refresh.
+  static const String _retriedKey = 'lavendia.retriedAfterRefresh';
+
   late final Dio _dio;
+
+  /// Interceptor-free client used only for the token refresh call, so that a
+  /// 401 on refresh cannot re-enter [_onError].
+  late final Dio _refreshClient;
+
   final _storage = StorageService();
   final _logger = Logger();
 
   // Initialize Dio
   void init() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: ApiConstants.headers,
-      ),
-    );
+    // Each Dio keeps a reference to the BaseOptions it is given, so build a
+    // fresh instance per client rather than sharing one mutable object.
+    BaseOptions buildOptions() => BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: ApiConstants.headers,
+        );
+
+    _dio = Dio(buildOptions());
+    _refreshClient = Dio(buildOptions());
 
     // Add interceptors
     _dio.interceptors.add(
@@ -32,14 +45,22 @@ class ApiService {
       ),
     );
 
-    // Add logging interceptor in debug mode
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (obj) => _logger.d(obj),
-      ),
-    );
+    // Logging interceptor - debug builds only, and never headers or response
+    // bodies. LogInterceptor defaults requestHeader to true, which printed
+    // `Authorization: Bearer <token>` on every request; responseBody printed
+    // the login response verbatim, i.e. both the access and refresh tokens.
+    // Neither was gated on build mode, so it shipped in release.
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestHeader: false,
+          requestBody: true,
+          responseHeader: false,
+          responseBody: false,
+          logPrint: (obj) => _logger.d(obj),
+        ),
+      );
+    }
   }
 
   // Request interceptor - add auth token
@@ -72,43 +93,86 @@ class ApiService {
   ) async {
     _logger.e('ERROR[${error.response?.statusCode}] => ${error.requestOptions.uri}');
 
-    // If 401 error, try to refresh token
-    if (error.response?.statusCode == 401) {
+    // Attempt a refresh only for a 401 on a normal request that has not
+    // already been retried once. Both guards matter:
+    //  - the refresh path itself must never re-enter here, or the interceptor
+    //    calls itself on every attempt and recurses unbounded;
+    //  - the retry goes back through _dio, so a request that 401s again with
+    //    a genuinely fresh token (deactivated user, a view returning 401
+    //    rather than 403) would otherwise loop forever, burning one rotated
+    //    refresh token per cycle.
+    final isRefreshCall =
+        error.requestOptions.path.contains(ApiConstants.refresh);
+    final alreadyRetried = error.requestOptions.extra[_retriedKey] == true;
+
+    if (error.response?.statusCode == 401 && !isRefreshCall && !alreadyRetried) {
+      String? newAccessToken;
+
       try {
         final refreshToken = await _storage.getRefreshToken();
         if (refreshToken != null) {
-          // Try to refresh token
-          final response = await _dio.post(
+          // Refresh over a bare client: _dio carries this interceptor, so
+          // reusing it here is the other half of the recursion above.
+          final response = await _refreshClient.post(
             ApiConstants.refresh,
             data: {'refresh': refreshToken},
             options: Options(headers: ApiConstants.headers),
           );
 
           if (response.statusCode == 200) {
-            final newAccessToken = response.data['access'];
-            await _storage.saveAccessToken(newAccessToken);
+            newAccessToken = response.data['access'] as String?;
 
-            // Retry the original request
-            final opts = error.requestOptions;
-            opts.headers['Authorization'] = 'Bearer $newAccessToken';
+            if (newAccessToken != null) {
+              await _storage.saveAccessToken(newAccessToken);
 
-            final cloneReq = await _dio.request(
-              opts.path,
-              options: Options(
-                method: opts.method,
-                headers: opts.headers,
-              ),
-              data: opts.data,
-              queryParameters: opts.queryParameters,
-            );
-
-            return handler.resolve(cloneReq);
+              // The backend rotates refresh tokens and blacklists the
+              // previous one, so the replacement must be stored or the next
+              // refresh fails and the user is silently signed out.
+              final newRefreshToken = response.data['refresh'] as String?;
+              if (newRefreshToken != null) {
+                await _storage.saveRefreshToken(newRefreshToken);
+              }
+            }
           }
+        }
+      } on DioException catch (e) {
+        // Only an authoritative rejection means the session is over. A
+        // timeout or connection error at the moment the token expires must
+        // not log the user out.
+        final status = e.response?.statusCode;
+        if (status == 400 || status == 401) {
+          _logger.w('Refresh token rejected ($status) - clearing session');
+          await _storage.clearUserData();
+        } else {
+          _logger.e('Token refresh failed transiently: ${e.message}');
         }
       } catch (e) {
         _logger.e('Token refresh failed: $e');
-        // Clear tokens and redirect to login
-        await _storage.clearUserData();
+      }
+
+      // Retry outside the try above, so a failure in the retried request is
+      // never mistaken for a refresh failure.
+      if (newAccessToken != null) {
+        try {
+          final opts = error.requestOptions;
+          opts.headers['Authorization'] = 'Bearer $newAccessToken';
+          opts.extra[_retriedKey] = true;
+
+          // FormData is single-use: it is finalized on send, and reusing the
+          // same instance throws StateError. Cloning is what dio provides for
+          // exactly this retry case, and it keeps multipart uploads working.
+          if (opts.data is FormData) {
+            opts.data = (opts.data as FormData).clone();
+          }
+
+          // fetch(opts) replays the whole RequestOptions. Rebuilding it by
+          // hand dropped responseType (breaking the bytes-mode PDF export),
+          // onSendProgress (freezing upload progress UI), contentType and
+          // timeouts.
+          return handler.resolve(await _dio.fetch(opts));
+        } on DioException catch (e) {
+          return handler.next(e);
+        }
       }
     }
 
