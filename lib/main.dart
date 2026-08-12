@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/constants/api_constants.dart';
 import 'core/constants/app_constants.dart';
 import 'core/localization/app_localizations.dart';
 import 'providers/auth_provider.dart';
@@ -23,6 +25,17 @@ import 'features/onboarding/screens/onboarding_screen.dart';
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Fail loudly rather than shipping a release build that sends bearer tokens
+  // in cleartext. This must not be an assert - asserts are stripped from
+  // release builds, which is exactly where the check matters.
+  if (kReleaseMode && ApiConstants.isCleartext) {
+    throw StateError(
+      'Release builds require an https:// API base URL. Got '
+      '"${ApiConstants.baseUrl}". Pass one at build time, e.g. '
+      'flutter build apk --dart-define=API_BASE_URL=https://api.example.com/api',
+    );
+  }
 
   // Initialize services
   await StorageService().init();

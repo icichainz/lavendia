@@ -1,8 +1,29 @@
 class ApiConstants {
-  // Base URL - change for production
-  static const String baseUrl = 'http://10.0.2.2:8000/api'; // Android emulator
-  // For iOS simulator: 'http://localhost:8000/api'
-  // For physical device: 'http://YOUR_COMPUTER_IP:8000/api'
+  /// Base URL for the API.
+  ///
+  /// Override at build/run time without editing this file:
+  ///   flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000/api
+  ///   flutter build apk --dart-define=API_BASE_URL=https://api.lavendia.app/api
+  ///
+  /// The default targets the Android emulator loopback alias, which is the
+  /// most common local setup. Other local targets:
+  ///   iOS simulator:   http://localhost:8000/api
+  ///   Physical device: `http://<your-computer-ip>:8000/api`
+  ///
+  /// Release builds must pass an https:// URL - see [isCleartext].
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:8000/api',
+  );
+
+  /// True when [baseUrl] uses unencrypted HTTP.
+  ///
+  /// Release builds on Android permit cleartext only to `localhost` and
+  /// `127.0.0.1` (see android/app/src/main/res/xml/network_security_config.xml).
+  /// Debug builds permit it to any host, so this getter - not the platform -
+  /// is what catches a release build wired to a plaintext URL. [main] asserts
+  /// on it at startup.
+  static bool get isCleartext => baseUrl.startsWith('http://');
 
   // Auth Endpoints
   static const String login = '/auth/login/';
