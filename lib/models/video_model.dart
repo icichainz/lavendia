@@ -42,20 +42,36 @@ class VideoModel {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  // From JSON
-  factory VideoModel.fromJson(Map<String, dynamic> json) {
+  /// Build from any of the three shapes the API emits.
+  ///
+  /// `VideoSerializer` (GET /videos/{id}/, /videos/by_receipt/) sends every
+  /// field. `VideoListSerializer`, used for the nested `videos` array on a
+  /// receipt, sends only id, video_type, thumbnail, duration, file_size_mb
+  /// and uploaded_at - no `receipt`, `video_file` or `updated_at`. Casting
+  /// those three unconditionally threw on every receipt that had a video,
+  /// which crashed the receipt detail screen.
+  ///
+  /// [receiptId] supplies the parent id when the payload omits it, since the
+  /// caller parsing a nested array already knows which receipt it belongs to.
+  factory VideoModel.fromJson(Map<String, dynamic> json, {int? receiptId}) {
+    final uploadedAt = DateTime.parse(json['uploaded_at'] as String);
+
     return VideoModel(
       id: json['id'] as int,
-      receiptId: json['receipt'] as int,
+      receiptId: json['receipt'] as int? ?? receiptId ?? 0,
       videoType: json['video_type'] as String,
-      videoFileUrl: json['video_file'] as String,
+      videoFileUrl: json['video_file'] as String? ?? '',
       videoUrl: json['video_url'] as String?,
       thumbnailUrl: json['thumbnail'] as String?,
       duration: json['duration'] as int?,
       fileSize: json['file_size'] as int?,
       fileSizeMb: (json['file_size_mb'] as num?)?.toDouble(),
-      uploadedAt: DateTime.parse(json['uploaded_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      uploadedAt: uploadedAt,
+      // The list shape has no updated_at; a video is immutable once uploaded,
+      // so uploadedAt is the honest stand-in.
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : uploadedAt,
     );
   }
 
